@@ -21,14 +21,11 @@ namespace Trine.Analyzer
 
         public override void Initialize(AnalysisContext context)
         {
-            // TODO: Consider registering other actions that act on syntax instead of or in addition to symbols
-            // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Analyzer%20Actions%20Semantics.md for more information
             context.RegisterSyntaxNodeAction(AnalyzeSymbol, SyntaxKind.ClassDeclaration);
         }
 
         private static void AnalyzeSymbol(SyntaxNodeAnalysisContext context)
         {
-            try {
             var cls = (ClassDeclarationSyntax)context.Node;
             MemberDeclarationSyntax prevMember = null;
             foreach(var member in cls.Members)
@@ -58,11 +55,6 @@ namespace Trine.Analyzer
                     }
                 }
                 prevMember = member;
-            }
-            }
-            catch(Exception e)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(Rule, context.Node.GetLocation(), e.ToString(), ""));
             }
         }
 
