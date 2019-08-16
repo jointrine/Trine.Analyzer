@@ -13,11 +13,13 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: dotnet test --configuration $(buildConfiguration)
-  displayName: 'dotnet test $(buildConfiguration)'
+- task: DotNetCoreCLI@2
+  inputs:
+    command: test
 
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
   inputs:
     command: pack
-    packagesToPack: '**/*.csproj'
+    packagesToPack: 'Trine.Analyzer/Trine.Analyzer.csproj'
+    versioningScheme: 'byBuildNumber'
 
