@@ -15,3 +15,9 @@ variables:
 steps:
 - script: dotnet test --configuration $(buildConfiguration)
   displayName: 'dotnet test $(buildConfiguration)'
+
+- task: NuGetCommand@2
+  inputs:
+    command: pack
+    packagesToPack: '**/*.csproj'
+
