@@ -17,11 +17,17 @@ variables:
 steps:
 - task: DotNetCoreCLI@2
   inputs:
+    command: build
+    configuration: ${buildConfiguration}
+
+- task: DotNetCoreCLI@2
+  inputs:
     command: test
+    configuration: ${buildConfiguration}
 
 - task: DotNetCoreCLI@2
   inputs:
     command: pack
-    #packagesToPack: 'Trine.Analyzer/Trine.Analyzer.csproj'
-    #versioningScheme: 'byBuildNumber'
+    packagesToPack: 'Trine.Analyzer/Trine.Analyzer.csproj'
+    versioningScheme: 'byBuildNumber'
 
