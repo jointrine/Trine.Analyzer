@@ -3,6 +3,8 @@
 # Add steps that run tests, create a NuGet package, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 
+name: $(BuildDefinitionName)_$(Year:yyyy).$(Month).$(DayOfMonth)$(Rev:.r)
+
 trigger:
 - master
 
@@ -10,8 +12,26 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  buildConfiguration: 'Release'
+  BuildConfiguration: 'Release'
 
 steps:
-- script: dotnet test --configuration $(buildConfiguration)
-  displayName: 'dotnet test $(buildConfiguration)'
+- task: DotNetCoreCLI@2
+  inputs:
+    command: build
+    arguments: '--configuration $(buildConfiguration)'
+    
+- task: DotNetCoreCLI@2
+  inputs:
+    command: test
+    arguments: '--configuration $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: pack
+    packagesToPack: 'Trine.Analyzer/Trine.Analyzer.csproj'
+    versioningScheme: 'byBuildNumber'
+    configurationToPack: '$(BuildConfiguration)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    artifactName: package
