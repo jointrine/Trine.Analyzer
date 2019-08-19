@@ -32,3 +32,6 @@ steps:
     versioningScheme: 'byBuildNumber'
     configurationToPack: '$(BuildConfiguration)'
 
+- task: PublishBuildArtifacts@1
+  inputs:
+    artifactName: package
