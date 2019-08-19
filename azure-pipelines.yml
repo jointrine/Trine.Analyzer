@@ -18,16 +18,17 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
     command: build
-    configuration: ${buildConfiguration}
-
+    configuration: '$(BuildConfiguration)'
+    
 - task: DotNetCoreCLI@2
   inputs:
     command: test
-    configuration: ${buildConfiguration}
+    configuration: '$(BuildConfiguration)'
 
 - task: DotNetCoreCLI@2
   inputs:
     command: pack
     packagesToPack: 'Trine.Analyzer/Trine.Analyzer.csproj'
     versioningScheme: 'byBuildNumber'
+    configurationToPack: '$(BuildConfiguration)'
 
