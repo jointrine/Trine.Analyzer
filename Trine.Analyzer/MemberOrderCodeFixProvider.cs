@@ -46,9 +46,11 @@ namespace Trine.Analyzer
                         foreach(var cls in classes)
                         {
                             SyntaxList<MemberDeclarationSyntax> originalMembers = cls.Members;
+
+                            // TODO: Fix newlines
                             var sortedMembers = originalMembers
-                                .OrderBy(member => MemberOrderAnalyzer.GetSortOrder(member, semanticModel))
-                                .Select((member, index) => member.WithLeadingTrivia(originalMembers[index].GetLeadingTrivia()));
+                                .OrderBy(member => new SortOrder(member, semanticModel));
+
                             root = root.ReplaceNode(cls, cls.WithMembers(new SyntaxList<MemberDeclarationSyntax>(sortedMembers)));
                         }
                         return context.Document.WithSyntaxRoot(root);

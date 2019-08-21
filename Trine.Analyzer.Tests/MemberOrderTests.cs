@@ -23,36 +23,25 @@ namespace Trine.Analyzer.Tests
         public void InvalidOrderWithFixer()
         {
             var test = @"
-using System;
-using System.Runtime.Serialization;
-
-namespace Trine.Core.Error
+namespace Trine
 {
-    [Serializable]
-    public class UserFriendlyException : Exception
+    public class TestClass
     {
-        private string Title { get; }
-        internal string Details { get; }
+        public class SubClass {}
 
-        protected UserFriendlyException(SerializationInfo info, StreamingContext context): base(info, context)
-        {
-            Title = info.GetString(""pTitle"");
-            Details = info.GetString(""pDetails"");
-        }
+        private string PrivateProperty { get; }
+        internal string InternalProperty { get; }
 
-        public UserFriendlyException(string title, string details)
-            : base(title + "": "" + details)
-        {
-            Title = title;
-            Details = details;
-        }
+        int nonConstField;
+        const int constField = 1;
 
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-            info.AddValue(""pDetails"", Details);
-            info.AddValue(""pTitle"", Title);
-        }
+        // Keep comment
+        protected TestClass() {}
+
+        public TestClass(string title, string details) {}
+
+        public void Method() {}
+        public static void StaticMethod() {}
     }
 }
 ";
@@ -60,66 +49,67 @@ namespace Trine.Core.Error
                 new DiagnosticResult
                 {
                     Id = "TRINE01",
-                    Message = "Internal should be declared before Private",
+                    Message = "Property should be declared before Class",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations =
-                        new[] {
-                                new DiagnosticResultLocation("Test0.cs", 11, 9)
-                            }
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 8, 9)}
                 },
                 new DiagnosticResult
                 {
                     Id = "TRINE01",
-                    Message = "Constructor should be declared before Property",
+                    Message = "Internal should be declared before Private",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations =
-                        new[] {
-                                new DiagnosticResultLocation("Test0.cs", 13, 9)
-                            }
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 9, 9)}
+                },
+                new DiagnosticResult
+                {
+                    Id = "TRINE01",
+                    Message = "Field should be declared before Property",
+                    Severity = DiagnosticSeverity.Warning,
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 11, 9)}
+                },
+                new DiagnosticResult
+                {
+                    Id = "TRINE01",
+                    Message = "Constant should be declared before Field",
+                    Severity = DiagnosticSeverity.Warning,
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 12, 9)}
                 },
                 new DiagnosticResult
                 {
                     Id = "TRINE01",
                     Message = "Public should be declared before Protected",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations =
-                        new[] {
-                                new DiagnosticResultLocation("Test0.cs", 19, 9)
-                            }
-                }
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 17, 9)}
+                },
+                new DiagnosticResult
+                {
+                    Id = "TRINE01",
+                    Message = "Static should be declared before NonStatic",
+                    Severity = DiagnosticSeverity.Warning,
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 20, 9)}
+                },
             });
 
             var fixtest = @"
-using System;
-using System.Runtime.Serialization;
-
-namespace Trine.Core.Error
+namespace Trine
 {
-    [Serializable]
-    public class UserFriendlyException : Exception
+    public class TestClass
     {
-        public UserFriendlyException(string title, string details)
-            : base(title + "": "" + details)
-        {
-            Title = title;
-            Details = details;
-        }
-        protected UserFriendlyException(SerializationInfo info, StreamingContext context): base(info, context)
-        {
-            Title = info.GetString(""pTitle"");
-            Details = info.GetString(""pDetails"");
-        }
+        const int constField = 1;
 
-        internal string Details { get; }
+        int nonConstField;
 
-        private string Title { get; }
+        public TestClass(string title, string details) {}
 
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-            info.AddValue(""pDetails"", Details);
-            info.AddValue(""pTitle"", Title);
-        }
+        // Keep comment
+        protected TestClass() {}
+        internal string InternalProperty { get; }
+
+        private string PrivateProperty { get; }
+        public static void StaticMethod() {}
+
+        public void Method() {}
+        public class SubClass {}
     }
 }
 ";
