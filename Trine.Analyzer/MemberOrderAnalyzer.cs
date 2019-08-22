@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -27,83 +25,20 @@ namespace Trine.Analyzer
         private static void AnalyzeSymbol(SyntaxNodeAnalysisContext context)
         {
             var cls = (ClassDeclarationSyntax)context.Node;
-            MemberDeclarationSyntax prevMember = null;
-            foreach(var member in cls.Members)
+            SortOrder prevSortOrder = null;
+            foreach (var member in cls.Members)
             {
-                if (prevMember != null) 
+                var sortOrder = new SortOrder(member, context.SemanticModel);
+                if (prevSortOrder != null)
                 {
-                    DeclarationOrder? order = GetDeclarationOrder(member);
-                    if (order != null)
+                    if (sortOrder.CompareTo(prevSortOrder) < 0)
                     {
-                        var prevOrder = GetDeclarationOrder(prevMember);
-                        if (prevOrder != null && order < prevOrder)
-                        {
-                            context.ReportDiagnostic(Diagnostic.Create(Rule, member.GetLocation(), order, prevOrder));
-                        }
-                        else if (order == prevOrder)
-                        {
-                            var visibility = GetVisibilityOrder(member, context.SemanticModel);
-                            if (visibility != null)
-                            {
-                                var prevVisibility = GetVisibilityOrder(prevMember, context.SemanticModel);
-                                if (prevVisibility != null && visibility < prevVisibility)
-                                {
-                                    context.ReportDiagnostic(Diagnostic.Create(Rule, member.GetLocation(), visibility, prevVisibility));
-                                }
-                            }
-                        }
+                        context.ReportDiagnostic(Diagnostic.Create(Rule, member.GetLocation(), SortOrder.FormatOrderDifference(sortOrder, prevSortOrder)));
                     }
                 }
-                prevMember = member;
+
+                prevSortOrder = sortOrder;
             }
-        }
-
-        internal static (DeclarationOrder?, VisibilityOrder?) GetSortOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
-        {
-            return (GetDeclarationOrder(member), GetVisibilityOrder(member, semanticModel));
-        }
-
-        private static DeclarationOrder? GetDeclarationOrder(MemberDeclarationSyntax member)
-        {
-            DeclarationOrder? order = null;
-            switch (member.Kind())
-            {
-                case SyntaxKind.MethodDeclaration: order = DeclarationOrder.Method; break;
-                case SyntaxKind.FieldDeclaration: order = DeclarationOrder.Field; break;
-                case SyntaxKind.ConstructorDeclaration: order = DeclarationOrder.Constructor; break;
-                case SyntaxKind.PropertyDeclaration: order = DeclarationOrder.Property; break;
-            }
-
-            return order;
-        }
-
-        private static VisibilityOrder? GetVisibilityOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
-        {
-            var acessibility = semanticModel.GetDeclaredSymbol(member)?.DeclaredAccessibility;
-            switch(acessibility)
-            {
-                case Accessibility.Public: return VisibilityOrder.Public;
-                case Accessibility.Protected: return VisibilityOrder.Protected;
-                case Accessibility.Internal: return VisibilityOrder.Internal;
-                case Accessibility.Private: return VisibilityOrder.Private;   
-            }
-            return null;
-        }
-
-        internal enum VisibilityOrder
-        {
-            Public,
-            Protected,
-            Internal,
-            Private
-        }
-
-        internal enum DeclarationOrder
-        {
-            Field,
-            Constructor,
-            Property,
-            Method
         }
     }
 }
