@@ -19,6 +19,8 @@ namespace Trine.Analyzer
             _staticOrder = GetStaticOrder(member, semanticModel);
         }
 
+        public DeclarationOrder? Declaration => _declarationOrder;
+
         public static string[] FormatOrderDifference(SortOrder sortOrder1, SortOrder sortOrder2)
         {
             if (sortOrder1._declarationOrder != sortOrder2._declarationOrder) return FormatItems(sortOrder1._declarationOrder, sortOrder2._declarationOrder);

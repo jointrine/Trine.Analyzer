@@ -33,6 +33,7 @@ namespace Trine
         internal string InternalProperty { get; }
 
         int nonConstField;
+        int anotherNonConstField;
         const int constField = 1;
 
         // Keep comment
@@ -42,6 +43,7 @@ namespace Trine
 
         public void Method() {}
         public static void StaticMethod() {}
+        public static void AnotherStaticMethod() {}
     }
 }
 ";
@@ -72,21 +74,21 @@ namespace Trine
                     Id = "TRINE01",
                     Message = "Constant should be declared before Field",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 12, 9)}
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 13, 9)}
                 },
                 new DiagnosticResult
                 {
                     Id = "TRINE01",
                     Message = "Public should be declared before Protected",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 17, 9)}
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 18, 9)}
                 },
                 new DiagnosticResult
                 {
                     Id = "TRINE01",
                     Message = "Static should be declared before NonStatic",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 20, 9)}
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 21, 9)}
                 },
             });
 
@@ -98,17 +100,23 @@ namespace Trine
         const int constField = 1;
 
         int nonConstField;
+        int anotherNonConstField;
 
         public TestClass(string title, string details) {}
 
         // Keep comment
         protected TestClass() {}
+
         internal string InternalProperty { get; }
 
         private string PrivateProperty { get; }
+
         public static void StaticMethod() {}
 
+        public static void AnotherStaticMethod() {}
+
         public void Method() {}
+
         public class SubClass {}
     }
 }

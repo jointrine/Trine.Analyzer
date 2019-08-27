@@ -48,8 +48,21 @@ namespace Trine.Analyzer
                             SyntaxList<MemberDeclarationSyntax> originalMembers = cls.Members;
 
                             // TODO: Fix newlines
+                            SortOrder prevSortOrder = null;
                             var sortedMembers = originalMembers
-                                .OrderBy(member => new SortOrder(member, semanticModel));
+                                .Select(member => new
+                                {
+                                    Member = member,
+                                    SortOrder = new SortOrder(member, semanticModel)
+                                })
+                                .OrderBy(member => member.SortOrder)
+                                .Select(member => {
+                                    var newTrivia = FormatNewlines(member.Member.GetLeadingTrivia(), member.SortOrder, prevSortOrder);
+                                    var updated = member.Member.WithLeadingTrivia(newTrivia);
+                                    prevSortOrder = member.SortOrder;
+                                    return updated;
+                                });
+                                ;
 
                             root = root.ReplaceNode(cls, cls.WithMembers(new SyntaxList<MemberDeclarationSyntax>(sortedMembers)));
                         }
@@ -58,6 +71,31 @@ namespace Trine.Analyzer
                     equivalenceKey: title),
                 context.Diagnostics);
             return Task.CompletedTask;
+        }
+
+        private SyntaxTriviaList FormatNewlines(SyntaxTriviaList currentTrivia, SortOrder sortOrder, SortOrder prevSortOrder)
+        {
+            var addNewLine = ShouldAddNewLine(sortOrder, prevSortOrder);
+            var list = currentTrivia.SkipWhile(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
+            if (addNewLine)
+            {
+                list = new[]{ SyntaxFactory.CarriageReturnLineFeed }.Concat(list);
+            }
+            return new SyntaxTriviaList(list);
+        }
+
+        private bool ShouldAddNewLine(SortOrder sortOrder, SortOrder prevSortOrder)
+        {
+            if (prevSortOrder == null) return false;
+            if (sortOrder.Declaration != SortOrder.DeclarationOrder.Constant &&
+                sortOrder.Declaration != SortOrder.DeclarationOrder.Field &&
+                sortOrder.Declaration != SortOrder.DeclarationOrder.Property)
+                {
+                    return true;
+                }
+
+            if (sortOrder.CompareTo(prevSortOrder) == 0) return false;
+            return true;
         }
     }
 }
