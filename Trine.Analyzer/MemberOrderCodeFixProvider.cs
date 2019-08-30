@@ -45,26 +45,8 @@ namespace Trine.Analyzer
                         var classes = context.Diagnostics.Select(d => root.FindNode(d.Location.SourceSpan).Parent as ClassDeclarationSyntax).Distinct();
                         foreach(var cls in classes)
                         {
-                            SyntaxList<MemberDeclarationSyntax> originalMembers = cls.Members;
-
-                            // TODO: Fix newlines
-                            SortOrder prevSortOrder = null;
-                            var sortedMembers = originalMembers
-                                .Select(member => new
-                                {
-                                    Member = member,
-                                    SortOrder = new SortOrder(member, semanticModel)
-                                })
-                                .OrderBy(member => member.SortOrder)
-                                .Select(member => {
-                                    var newTrivia = FormatNewlines(member.Member.GetLeadingTrivia(), member.SortOrder, prevSortOrder);
-                                    var updated = member.Member.WithLeadingTrivia(newTrivia);
-                                    prevSortOrder = member.SortOrder;
-                                    return updated;
-                                });
-                                ;
-
-                            root = root.ReplaceNode(cls, cls.WithMembers(new SyntaxList<MemberDeclarationSyntax>(sortedMembers)));
+                            var updatedClass = ReorderClass(semanticModel, cls);
+                            root = root.ReplaceNode(cls, updatedClass);
                         }
                         return context.Document.WithSyntaxRoot(root);
                     },
@@ -73,7 +55,31 @@ namespace Trine.Analyzer
             return Task.CompletedTask;
         }
 
-        private SyntaxTriviaList FormatNewlines(SyntaxTriviaList currentTrivia, SortOrder sortOrder, SortOrder prevSortOrder)
+        internal static ClassDeclarationSyntax ReorderClass(SemanticModel semanticModel, ClassDeclarationSyntax cls)
+        {
+            SyntaxList<MemberDeclarationSyntax> originalMembers = cls.Members;
+
+            SortOrder prevSortOrder = null;
+            var sortedMembers = originalMembers
+                .Select(member => new
+                {
+                    Member = member,
+                    SortOrder = new SortOrder(member)
+                })
+                .OrderBy(member => member.SortOrder)
+                .Select(member =>
+                {
+                    var newTrivia = FormatNewlines(member.Member.GetLeadingTrivia(), member.SortOrder, prevSortOrder);
+                    var updated = member.Member.WithLeadingTrivia(newTrivia);
+                    prevSortOrder = member.SortOrder;
+                    return updated;
+                });
+            ;
+
+            return cls.WithMembers(new SyntaxList<MemberDeclarationSyntax>(sortedMembers));
+        }
+
+        private static SyntaxTriviaList FormatNewlines(SyntaxTriviaList currentTrivia, SortOrder sortOrder, SortOrder prevSortOrder)
         {
             var addNewLine = ShouldAddNewLine(sortOrder, prevSortOrder);
             var list = currentTrivia.SkipWhile(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
@@ -84,7 +90,7 @@ namespace Trine.Analyzer
             return new SyntaxTriviaList(list);
         }
 
-        private bool ShouldAddNewLine(SortOrder sortOrder, SortOrder prevSortOrder)
+        private static bool ShouldAddNewLine(SortOrder sortOrder, SortOrder prevSortOrder)
         {
             if (prevSortOrder == null) return false;
             if (sortOrder.Declaration != SortOrder.DeclarationOrder.Constant &&

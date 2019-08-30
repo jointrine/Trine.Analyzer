@@ -75,6 +75,9 @@ namespace Trine.Analyzer.Tests.TestHelper
         {
             var document = CreateDocument(oldSource, language);
             var analyzerDiagnostics = GetSortedDiagnosticsFromDocuments(analyzer, new[] { document });
+            analyzerDiagnostics = analyzerDiagnostics
+                .Where(d => codeFixProvider.FixableDiagnosticIds.Contains(d.Id))
+                .ToArray();
             var compilerDiagnostics = GetCompilerDiagnostics(document);
             var attempts = analyzerDiagnostics.Length;
 

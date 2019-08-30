@@ -57,8 +57,17 @@ namespace Trine.Analyzer.Tests.TestHelper
             var diagnostics = new List<Diagnostic>();
             foreach (var project in projects)
             {
-                var compilationWithAnalyzers = project.GetCompilationAsync().Result.WithAnalyzers(ImmutableArray.Create(analyzer));
-                var diags = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().Result;
+                ImmutableArray<Diagnostic> diags;
+                if (analyzer != null)
+                {
+                    var compilationWithAnalyzers = project.GetCompilationAsync().Result.WithAnalyzers(ImmutableArray.Create(analyzer));
+                    diags = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().Result;
+                }
+                else 
+                {
+                    var compilation = project.GetCompilationAsync().Result;
+                    diags = compilation.GetDiagnostics();
+                }
                 foreach (var diag in diags)
                 {
                     if (diag.Location == Location.None || diag.Location.IsInMetadata)

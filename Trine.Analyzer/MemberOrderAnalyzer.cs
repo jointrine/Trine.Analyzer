@@ -28,7 +28,7 @@ namespace Trine.Analyzer
             SortOrder prevSortOrder = null;
             foreach (var member in cls.Members)
             {
-                var sortOrder = new SortOrder(member, context.SemanticModel);
+                var sortOrder = new SortOrder(member);
                 if (prevSortOrder != null)
                 {
                     if (sortOrder.CompareTo(prevSortOrder) < 0)
