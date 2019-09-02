@@ -12,11 +12,11 @@ namespace Trine.Analyzer
         private readonly VisibilityOrder? _visibilityOrder;
         private readonly StaticOrder? _staticOrder;
 
-        public SortOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
+        public SortOrder(MemberDeclarationSyntax member)
         {
             _declarationOrder = GetDeclarationOrder(member);
-            _visibilityOrder = GetVisibilityOrder(member, semanticModel);
-            _staticOrder = GetStaticOrder(member, semanticModel);
+            _visibilityOrder = GetVisibilityOrder(member);
+            _staticOrder = GetStaticOrder(member);
         }
 
         public DeclarationOrder? Declaration => _declarationOrder;
@@ -104,30 +104,33 @@ namespace Trine.Analyzer
             return order;
         }
 
-        private static VisibilityOrder? GetVisibilityOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
+        private static VisibilityOrder? GetVisibilityOrder(MemberDeclarationSyntax member)
         {
-            var acessibility = semanticModel.GetDeclaredSymbol(member)?.DeclaredAccessibility;
-            switch (acessibility)
+            var modifiers = GetModifiers(member);
+            foreach(var modifier in modifiers)
             {
-                case Accessibility.Public:
-                    return VisibilityOrder.Public;
-                case Accessibility.Protected:
-                    return VisibilityOrder.Protected;
-                case Accessibility.ProtectedAndInternal:
-                    return VisibilityOrder.ProtectedInternal;
-                case Accessibility.Internal:
-                    return VisibilityOrder.Internal;
-                case Accessibility.Private:
-                    return VisibilityOrder.Private;
+                if (modifier.IsKind(SyntaxKind.PublicKeyword)) return VisibilityOrder.Public;
+                if (modifier.IsKind(SyntaxKind.InternalKeyword)) return VisibilityOrder.Internal;
+                if (modifier.IsKind(SyntaxKind.ProtectedKeyword)) return VisibilityOrder.Protected;
+                if (modifier.IsKind(SyntaxKind.PrivateKeyword)) return VisibilityOrder.Private;
             }
-            return null;
+
+            return VisibilityOrder.Private;
         }
 
-        private StaticOrder? GetStaticOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
+        private static SyntaxTokenList GetModifiers(MemberDeclarationSyntax member)
         {
-            var isStatic = semanticModel.GetDeclaredSymbol(member)?.IsStatic;
-            if (isStatic == null) return null;
-            return isStatic.Value ? StaticOrder.Static : StaticOrder.NonStatic;
+            if (member is BaseMethodDeclarationSyntax method) return method.Modifiers;
+            if (member is BaseFieldDeclarationSyntax field) return field.Modifiers;
+            if (member is BasePropertyDeclarationSyntax property) return property.Modifiers;
+            if (member is ClassDeclarationSyntax @class) return @class.Modifiers;
+            throw new Exception("Unnknown member type: " + member.GetType().Name);
+        }
+
+        private StaticOrder? GetStaticOrder(MemberDeclarationSyntax member)
+        {
+            var isStatic = GetModifiers(member).Any(m => m.IsKind(SyntaxKind.StaticKeyword));
+            return isStatic ? StaticOrder.Static : StaticOrder.NonStatic;
         }
 
         // CG: For details on ordering: https://stackoverflow.com/a/310967/382040
@@ -152,7 +155,6 @@ namespace Trine.Analyzer
         {
             Public,
             Internal,
-            ProtectedInternal,
             Protected,
             Private
         }
