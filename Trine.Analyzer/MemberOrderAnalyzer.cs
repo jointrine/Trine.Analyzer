@@ -29,12 +29,12 @@ namespace Trine.Analyzer
             foreach (var member in cls.Members)
             {
                 var sortOrder = new SortOrder(member);
-                if (prevSortOrder != null)
+                if (prevSortOrder != null
+                    && prevSortOrder.IsKnown
+                    && sortOrder.IsKnown
+                    && sortOrder.CompareTo(prevSortOrder) < 0)
                 {
-                    if (sortOrder.CompareTo(prevSortOrder) < 0)
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(Rule, member.GetLocation(), SortOrder.FormatOrderDifference(sortOrder, prevSortOrder)));
-                    }
+                    context.ReportDiagnostic(Diagnostic.Create(Rule, member.GetLocation(), SortOrder.FormatOrderDifference(sortOrder, prevSortOrder)));
                 }
 
                 prevSortOrder = sortOrder;

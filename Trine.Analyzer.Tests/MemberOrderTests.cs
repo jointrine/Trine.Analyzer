@@ -36,6 +36,10 @@ namespace Trine
         int anotherNonConstField;
         const int constField = 1;
 
+        public static bool operator ==(TestClass p1, TestClass p2) {
+            return true;
+        }
+
         // Keep comment
         protected TestClass() {}
 
@@ -81,14 +85,14 @@ namespace Trine
                     Id = "TRINE01",
                     Message = "Public should be declared before Protected",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 18, 9)}
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 22, 9)}
                 },
                 new DiagnosticResult
                 {
                     Id = "TRINE01",
                     Message = "Static should be declared before NonStatic",
                     Severity = DiagnosticSeverity.Warning,
-                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 21, 9)}
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 25, 9)}
                 },
             });
 
@@ -118,6 +122,10 @@ namespace Trine
         public void Method() {}
 
         public class SubClass {}
+
+        public static bool operator ==(TestClass p1, TestClass p2) {
+            return true;
+        }
     }
 }
 ";
