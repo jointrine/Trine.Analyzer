@@ -21,6 +21,8 @@ namespace Trine.Analyzer
 
         public DeclarationOrder? Declaration => _declarationOrder;
 
+        public bool IsKnown => _declarationOrder != null && _visibilityOrder != null && _staticOrder != null;
+
         public static string[] FormatOrderDifference(SortOrder sortOrder1, SortOrder sortOrder2)
         {
             if (sortOrder1._declarationOrder != sortOrder2._declarationOrder) return FormatItems(sortOrder1._declarationOrder, sortOrder2._declarationOrder);
@@ -49,7 +51,10 @@ namespace Trine.Analyzer
 
         private static int? CompareOrder<T>(T? order1, T? order2) where T : struct, IComparable
         {
-            if (!order1.HasValue || !order2.HasValue) return null;
+            if (!order1.HasValue && order2.HasValue) return 1;
+            if (order1.HasValue && !order2.HasValue) return -1;
+            if (!order1.HasValue && !order2.HasValue) return 0;
+            
             var diff = order1.Value.CompareTo(order2.Value);
             if (diff == 0) return null;
             return diff;
@@ -124,7 +129,8 @@ namespace Trine.Analyzer
             if (member is BaseFieldDeclarationSyntax field) return field.Modifiers;
             if (member is BasePropertyDeclarationSyntax property) return property.Modifiers;
             if (member is ClassDeclarationSyntax @class) return @class.Modifiers;
-            throw new Exception("Unnknown member type: " + member.GetType().Name);
+            if (member is EnumDeclarationSyntax @enum) return @enum.Modifiers;
+            return new SyntaxTokenList();
         }
 
         private StaticOrder? GetStaticOrder(MemberDeclarationSyntax member)
