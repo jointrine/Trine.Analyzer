@@ -51,6 +51,38 @@ namespace Trine.Analyzer.Tests
             VerifyCSharpFix(source, fixedSource);
         }
 
+        [TestMethod]
+        public void Formatting()
+        {
+            var source = @"namespace
+{
+    class X
+    {
+        public string Prop { get; }
+    }
+
+    enum Enum { A }
+
+    enum Enum2 { X = 1 }
+}";
+
+            var fixedSource = @"namespace
+{
+    class X
+    {
+        public string Prop { get; }
+    }
+
+    enum Enum
+    {
+        A = 0
+    }
+
+    enum Enum2 { X = 1 }
+}";
+            VerifyCSharpFix(source, fixedSource);
+        }
+
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
             return new EnumValueCodeFixProvider();
