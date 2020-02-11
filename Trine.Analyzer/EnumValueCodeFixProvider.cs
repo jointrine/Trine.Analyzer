@@ -56,7 +56,7 @@ namespace Trine.Analyzer
                                         return member.WithEqualsValue(
                                             SyntaxFactory.EqualsValueClause(
                                                 SyntaxFactory.LiteralExpression(
-                                                    SyntaxKind.NumericLiteralExpression, 
+                                                    SyntaxKind.NumericLiteralExpression,
                                                     SyntaxFactory.Literal(nextValue++)
                                                 )
                                             ));
@@ -71,7 +71,12 @@ namespace Trine.Analyzer
                                         return member;
                                     }
                                 })));
-                            root = root.ReplaceNode(enumSyntax, updatedEnumSyntax.NormalizeWhitespace());
+
+                            updatedEnumSyntax = updatedEnumSyntax.NormalizeWhitespace(elasticTrivia: true)
+                                .WithLeadingTrivia(updatedEnumSyntax.GetLeadingTrivia())
+                                .WithTrailingTrivia(updatedEnumSyntax.GetTrailingTrivia());
+
+                            root = root.ReplaceNode(enumSyntax, updatedEnumSyntax);
                         }
                         return context.Document.WithSyntaxRoot(root);
                     },
