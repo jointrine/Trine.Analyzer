@@ -99,5 +99,44 @@ class Class
 }";
             VerifyCSharpFix(before, after);
         }
+
+        [TestMethod]
+        public void Inject_WhenHasGenericArguments_UpdatesCorrectly()
+        {
+            const string before = @"
+interface IInterface<T>
+{
+    void InterfaceMethod();
+}
+
+class Class
+{
+    public void Method()
+    {
+        IInterface<Class>.InterfaceMethod();
+    }
+}";
+            const string after = @"
+interface IInterface<T>
+{
+    void InterfaceMethod();
+}
+
+class Class
+{
+    private readonly IInterface<Class> _interface;
+
+    public Class(IInterface<Class> interface)
+    {
+        _interface = interface;
+    }
+
+    public void Method()
+    {
+        _interface.InterfaceMethod();
+    }
+}";
+            VerifyCSharpFix(before, after);
+        }
     }
 }

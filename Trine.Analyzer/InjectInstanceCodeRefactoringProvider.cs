@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -30,14 +31,16 @@ namespace Trine.Analyzer
             var cancellationToken = context.CancellationToken;
 
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            SyntaxToken token = root.FindToken(textSpan.Start);
+            var token = root.FindToken(textSpan.Start);
 
             if (!token.IsKind(SyntaxKind.IdentifierToken))
             {
                 return;
             }
 
-            var classNode = FindClass(token.Parent);
+            var syntax = token.Parent as SimpleNameSyntax;
+
+            var classNode = FindClass(syntax);
             if (classNode == null)
             {
                 return;
@@ -45,7 +48,7 @@ namespace Trine.Analyzer
 
             context.RegisterCodeFix(
                 new InjectCodeAction("Inject instance",
-                    (c) => InjectInstance(document, classNode, token.Text)),
+                    (c) => InjectInstance(document, classNode, syntax)),
                     context.Diagnostics);
         }
 
@@ -56,24 +59,24 @@ namespace Trine.Analyzer
             return FindClass(node.Parent);
         }
 
-        private async Task<Document> InjectInstance(Document document, ClassDeclarationSyntax classNode, string typeName)
+        private async Task<Document> InjectInstance(Document document, ClassDeclarationSyntax classNode, SimpleNameSyntax typeName)
         {
             var fieldName = "_" + ToVariableName(typeName);
             var fieldIdentifier = SyntaxFactory.Identifier(fieldName);
 
             ClassDeclarationSyntax updatedClass = classNode;
-            updatedClass = (ClassDeclarationSyntax)new IdentifierRewrtier(typeName, fieldName).Visit(updatedClass);
+            var typeNameStr = typeName.GetText().ToString();
+            updatedClass = updatedClass.ReplaceNode(typeName, SyntaxFactory.IdentifierName(fieldName));
             updatedClass = AddField(updatedClass, typeName, fieldIdentifier);
-            updatedClass = InjectInConstructor(updatedClass, typeName, fieldIdentifier);
+            updatedClass = InjectInConstructor(updatedClass, typeName.WithoutTrivia(), fieldIdentifier);
 
             var root = await document.GetSyntaxRootAsync();
             root = root.ReplaceNode(classNode, updatedClass);
             return document.WithSyntaxRoot(root);
         }
 
-        private static ClassDeclarationSyntax AddField(ClassDeclarationSyntax classNode, string serviceName, SyntaxToken fieldIdentifier)
+        private static ClassDeclarationSyntax AddField(ClassDeclarationSyntax classNode, SimpleNameSyntax serviceType, SyntaxToken fieldIdentifier)
         {
-            var serviceType = SyntaxFactory.ParseTypeName(serviceName);
             var field = SyntaxFactory.FieldDeclaration(
                 SyntaxFactory.VariableDeclaration(serviceType,
                     SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(fieldIdentifier))))
@@ -84,7 +87,7 @@ namespace Trine.Analyzer
             return classNode.AddSortedMembers(field);
         }
 
-        private ClassDeclarationSyntax InjectInConstructor(ClassDeclarationSyntax classNode, string symbolName, SyntaxToken fieldName)
+        private ClassDeclarationSyntax InjectInConstructor(ClassDeclarationSyntax classNode, SimpleNameSyntax symbolName, SyntaxToken fieldName)
         {
             string paramName = ToVariableName(symbolName);
             var oldConstructor = (ConstructorDeclarationSyntax)classNode.Members.FirstOrDefault(m => m.IsKind(SyntaxKind.ConstructorDeclaration));
@@ -97,7 +100,7 @@ namespace Trine.Analyzer
             }
             constructor = constructor.AddParameterListParameters(
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier(paramName))
-                    .WithType(SyntaxFactory.ParseTypeName(symbolName)))
+                    .WithType(symbolName))
                 .AddBodyStatements(SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
                     SyntaxKind.SimpleAssignmentExpression,
                     SyntaxFactory.IdentifierName(fieldName),
@@ -115,35 +118,15 @@ namespace Trine.Analyzer
             return classNode;
         }
 
-        private static string ToVariableName(string symbolName)
+        private static string ToVariableName(SimpleNameSyntax symbolName)
         {
-            var paramName = symbolName;
-            if (paramName.StartsWith("I"))
+            var paramName = symbolName.Identifier.Text;
+            if (new Regex("^I[A-Z]").IsMatch(paramName))
             {
                 paramName = paramName.Substring(1);
             }
             paramName = paramName.Substring(0, 1).ToLower() + paramName.Substring(1);
             return paramName;
-        }
-
-        class IdentifierRewrtier : CSharpSyntaxRewriter
-        {
-            private readonly string _from;
-            private readonly string _to;
-            public IdentifierRewrtier(string from, string to)
-            {
-                _from = from;
-                _to = to;
-
-            }
-            public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
-            {
-                if (node.Identifier.Text == _from)
-                {
-                    return node.WithIdentifier(SyntaxFactory.Identifier(_to));
-                }
-                return node;
-            }
         }
 
         private class InjectCodeAction : CodeAction
