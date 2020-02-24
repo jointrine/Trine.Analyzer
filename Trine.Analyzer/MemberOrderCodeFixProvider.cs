@@ -1,18 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Rename;
-using Microsoft.CodeAnalysis.Text;
-using Microsoft.CodeAnalysis.Editing;
 
 namespace Trine.Analyzer
 {
@@ -42,9 +36,12 @@ namespace Trine.Analyzer
                         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
                         var semanticModel = await context.Document.GetSemanticModelAsync();
 
-                        var classes = context.Diagnostics.Select(d => root.FindNode(d.Location.SourceSpan).Parent as ClassDeclarationSyntax).Distinct();
+                        var classes = context.Diagnostics
+                            .Select(d => root.FindNode(d.Location.SourceSpan).Parent as ClassDeclarationSyntax)
+                            .Distinct();
                         foreach(var cls in classes)
                         {
+                            if (cls == null) continue;
                             var updatedClass = ReorderClass(semanticModel, cls);
                             root = root.ReplaceNode(cls, updatedClass);
                         }
@@ -59,7 +56,7 @@ namespace Trine.Analyzer
         {
             SyntaxList<MemberDeclarationSyntax> originalMembers = cls.Members;
 
-            SortOrder prevSortOrder = null;
+            SortOrder? prevSortOrder = null;
             var sortedMembers = originalMembers
                 .Select(member => new
                 {
@@ -69,7 +66,10 @@ namespace Trine.Analyzer
                 .OrderBy(member => member.SortOrder)
                 .Select(member =>
                 {
-                    var newTrivia = FormatNewlines(member.Member.GetLeadingTrivia(), member.SortOrder, prevSortOrder);
+                    var newTrivia = FormatNewlines(
+                        member.Member.GetLeadingTrivia(), 
+                        member.SortOrder, 
+                        prevSortOrder);
                     var updated = member.Member.WithLeadingTrivia(newTrivia);
                     prevSortOrder = member.SortOrder;
                     return updated;
@@ -79,7 +79,7 @@ namespace Trine.Analyzer
             return cls.WithMembers(new SyntaxList<MemberDeclarationSyntax>(sortedMembers));
         }
 
-        private static SyntaxTriviaList FormatNewlines(SyntaxTriviaList currentTrivia, SortOrder sortOrder, SortOrder prevSortOrder)
+        private static SyntaxTriviaList FormatNewlines(SyntaxTriviaList currentTrivia, SortOrder sortOrder, SortOrder? prevSortOrder)
         {
             var addNewLine = ShouldAddNewLine(sortOrder, prevSortOrder);
             var list = currentTrivia.SkipWhile(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
@@ -90,7 +90,7 @@ namespace Trine.Analyzer
             return new SyntaxTriviaList(list);
         }
 
-        private static bool ShouldAddNewLine(SortOrder sortOrder, SortOrder prevSortOrder)
+        private static bool ShouldAddNewLine(SortOrder sortOrder, SortOrder? prevSortOrder)
         {
             if (prevSortOrder == null) return false;
             if (sortOrder.Declaration != SortOrder.DeclarationOrder.Constant &&

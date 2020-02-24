@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -24,6 +25,12 @@ namespace Trine.Analyzer
             get { return ImmutableArray.Create("CS0120", "CS0119"); }
         }
 
+        public sealed override FixAllProvider GetFixAllProvider()
+        {
+            // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/FixAllProvider.md for more information on Fix All Providers
+            return WellKnownFixAllProviders.BatchFixer;
+        }
+
         public override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var document = context.Document;
@@ -39,6 +46,7 @@ namespace Trine.Analyzer
             }
 
             var syntax = token.Parent as SimpleNameSyntax;
+            if (syntax == null) return;
 
             var classNode = FindClass(syntax);
             if (classNode == null)
@@ -47,12 +55,13 @@ namespace Trine.Analyzer
             }
 
             context.RegisterCodeFix(
-                new InjectCodeAction("Inject instance",
-                    (c) => InjectInstance(document, classNode, syntax)),
+                CodeAction.Create("Inject instance",
+                    (c) => InjectInstance(document, classNode, syntax),
+                    equivalenceKey: "Inject instance"),
                     context.Diagnostics);
         }
 
-        private ClassDeclarationSyntax FindClass(SyntaxNode node)
+        private ClassDeclarationSyntax? FindClass(SyntaxNode? node)
         {
             if (node == null) return null;
             if (node is ClassDeclarationSyntax classNode) return classNode;

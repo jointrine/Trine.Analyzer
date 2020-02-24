@@ -42,9 +42,13 @@ namespace Trine.Analyzer
                         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
                         var semanticModel = await context.Document.GetSemanticModelAsync();
 
-                        var enumSyntaxesToFix = context.Diagnostics.Select(d => root.FindNode(d.Location.SourceSpan) as EnumDeclarationSyntax).Distinct();
+                        var enumSyntaxesToFix = context.Diagnostics
+                            .Select(d => root.FindNode(d.Location.SourceSpan) as EnumDeclarationSyntax)
+                            .Distinct();
                         foreach(var enumSyntax in enumSyntaxesToFix)
                         {
+                            if (enumSyntax == null) continue;
+                            
                             var nextValue = 0;
 
                             var updatedEnumSyntax = enumSyntax.WithMembers(

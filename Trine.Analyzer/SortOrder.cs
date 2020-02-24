@@ -13,7 +13,7 @@ namespace Trine.Analyzer
         private readonly StaticOrder? _staticOrder;
         private readonly int? _interfaceOrder;
 
-        public SortOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
+        public SortOrder(MemberDeclarationSyntax member, SemanticModel? semanticModel)
         {
             _declarationOrder = GetDeclarationOrder(member);
             _visibilityOrder = GetVisibilityOrder(member);
@@ -60,9 +60,12 @@ namespace Trine.Analyzer
 
         private static int? CompareOrder<T>(T? order1, T? order2) where T : struct, IComparable
         {
-            if (!order1.HasValue && order2.HasValue) return 1;
-            if (order1.HasValue && !order2.HasValue) return -1;
-            if (!order1.HasValue && !order2.HasValue) return 0;
+            if (!order1.HasValue || !order2.HasValue)
+            {
+                if (order2.HasValue) return 1;
+                if (order1.HasValue) return -1;
+                return 0;
+            }
             
             var diff = order1.Value.CompareTo(order2.Value);
             if (diff == 0) return null;
@@ -78,7 +81,7 @@ namespace Trine.Analyzer
                     order = DeclarationOrder.Method;
                     break;
                 case SyntaxKind.FieldDeclaration:
-                    if ((member as FieldDeclarationSyntax).Modifiers.Any(SyntaxKind.ConstKeyword))
+                    if ((member as FieldDeclarationSyntax)!.Modifiers.Any(SyntaxKind.ConstKeyword))
                         order = DeclarationOrder.Constant;
                     else
                         order = DeclarationOrder.Field;

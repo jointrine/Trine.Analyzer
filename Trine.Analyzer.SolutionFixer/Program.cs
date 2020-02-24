@@ -45,7 +45,8 @@ namespace SolutionFixer
 
                 foreach (var projectId in solution.ProjectIds)
                 {
-                    var project = newSolution.GetProject(projectId);
+                    var project = newSolution.GetProject(projectId)
+                         ?? throw new Exception("Failed finding project " + projectId);
                     Console.Write($"Analyzing project {project.Name}");
 
                     // CG: Can only apply one code fix per file at a time
@@ -99,7 +100,8 @@ namespace SolutionFixer
         {
             var operations = codeAction.GetOperationsAsync(CancellationToken.None).Result;
             var solution = operations.OfType<ApplyChangesOperation>().Single().ChangedSolution;
-            return solution.GetDocument(document.Id);
+            return solution.GetDocument(document.Id) 
+                ?? throw new Exception("Failed getting document " + document.Id);
         }
     }
 }

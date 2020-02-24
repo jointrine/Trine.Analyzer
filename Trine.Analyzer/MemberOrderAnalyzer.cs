@@ -25,7 +25,7 @@ namespace Trine.Analyzer
         private static void AnalyzeSymbol(SyntaxNodeAnalysisContext context)
         {
             var cls = (ClassDeclarationSyntax)context.Node;
-            SortOrder prevSortOrder = null;
+            SortOrder? prevSortOrder = null;
             foreach (var member in cls.Members)
             {
                 var sortOrder = new SortOrder(member, context.SemanticModel);
