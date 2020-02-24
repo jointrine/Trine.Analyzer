@@ -132,6 +132,52 @@ namespace Trine
             VerifyCSharpFix(test, fixtest);
         }
 
+        [TestMethod]
+        public void WhenImplementingInterface()
+        {
+            var source = @"
+                interface ITest 
+                {
+                    void A();
+                    void B();
+                }
+
+                interface ITest2
+                {
+                    void C();
+                }
+
+                class Test : ITest, ITest2
+                {
+                    public void C() {}
+                    public void B() {}
+                    public void A() {}
+                }
+            ";
+            var @fixed = @"
+                interface ITest 
+                {
+                    void A();
+                    void B();
+                }
+
+                interface ITest2
+                {
+                    void C();
+                }
+
+                class Test : ITest, ITest2
+                {
+                    public void A() {}
+
+                    public void B() {}
+
+                    public void C() {}
+                }
+            ";
+            VerifyCSharpFix(source, @fixed);
+        }
+
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
             return new MemberOrderCodeFixProvider();
