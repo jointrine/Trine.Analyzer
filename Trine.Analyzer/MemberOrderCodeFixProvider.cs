@@ -64,7 +64,7 @@ namespace Trine.Analyzer
                 .Select(member => new
                 {
                     Member = member,
-                    SortOrder = new SortOrder(member)
+                    SortOrder = new SortOrder(member, semanticModel)
                 })
                 .OrderBy(member => member.SortOrder)
                 .Select(member =>

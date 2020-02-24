@@ -11,12 +11,15 @@ namespace Trine.Analyzer
         private readonly DeclarationOrder? _declarationOrder;
         private readonly VisibilityOrder? _visibilityOrder;
         private readonly StaticOrder? _staticOrder;
+        private readonly int? _interfaceOrder;
 
-        public SortOrder(MemberDeclarationSyntax member)
+        public SortOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
         {
             _declarationOrder = GetDeclarationOrder(member);
             _visibilityOrder = GetVisibilityOrder(member);
             _staticOrder = GetStaticOrder(member);
+            _interfaceOrder = semanticModel != null ? 
+                GetInterfaceOrder(member, semanticModel) : null; 
         }
 
         public DeclarationOrder? Declaration => _declarationOrder;
@@ -25,9 +28,14 @@ namespace Trine.Analyzer
 
         public static string[] FormatOrderDifference(SortOrder sortOrder1, SortOrder sortOrder2)
         {
-            if (sortOrder1._declarationOrder != sortOrder2._declarationOrder) return FormatItems(sortOrder1._declarationOrder, sortOrder2._declarationOrder);
-            if (sortOrder1._visibilityOrder != sortOrder2._visibilityOrder) return FormatItems(sortOrder1._visibilityOrder, sortOrder2._visibilityOrder);
-            if (sortOrder1._staticOrder != sortOrder2._staticOrder) return FormatItems(sortOrder1._staticOrder, sortOrder2._staticOrder);
+            if (sortOrder1._declarationOrder != sortOrder2._declarationOrder) 
+                return FormatItems(sortOrder1._declarationOrder, sortOrder2._declarationOrder);
+            if (sortOrder1._visibilityOrder != sortOrder2._visibilityOrder) 
+                return FormatItems(sortOrder1._visibilityOrder, sortOrder2._visibilityOrder);
+            if (sortOrder1._staticOrder != sortOrder2._staticOrder) 
+                return FormatItems(sortOrder1._staticOrder, sortOrder2._staticOrder);
+            if (sortOrder1._interfaceOrder != sortOrder2._interfaceOrder) 
+                return FormatItems(sortOrder1._interfaceOrder, sortOrder2._interfaceOrder);
             return new string[0];
         }
 
@@ -36,6 +44,7 @@ namespace Trine.Analyzer
             return CompareOrder(_declarationOrder, other._declarationOrder)
                 ?? CompareOrder(_visibilityOrder, other._visibilityOrder)
                 ?? CompareOrder(_staticOrder, other._staticOrder)
+                ?? CompareOrder(_interfaceOrder, other._interfaceOrder)
                 ?? 0;
         }
 
@@ -138,6 +147,24 @@ namespace Trine.Analyzer
             var isStatic = GetModifiers(member).Any(m => m.IsKind(SyntaxKind.StaticKeyword));
             return isStatic ? StaticOrder.Static : StaticOrder.NonStatic;
         }
+
+        private int? GetInterfaceOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
+        {
+            var methodSymbol = semanticModel.GetDeclaredSymbol(member);
+            if (methodSymbol == null) return null;
+            var classSymbol = methodSymbol.ContainingType;
+            var allInterfaceMembers = classSymbol
+                .AllInterfaces
+                .SelectMany(i => i.GetMembers())
+                .Select(i => classSymbol.FindImplementationForInterfaceMember(i));
+
+            var interfaceOrder = allInterfaceMembers
+                .TakeWhile(m => m != methodSymbol)
+                .Count();
+
+            return interfaceOrder;
+        }
+
 
         // CG: For details on ordering: https://stackoverflow.com/a/310967/382040
         internal enum DeclarationOrder
