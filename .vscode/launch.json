@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Trine.Analyzer.SolutionFixer/bin/Debug/netcoreapp2.2/Trine.Analyzer.SolutionFixer.dll",
+            "program": "${workspaceFolder}/Trine.Analyzer.SolutionFixer/bin/Debug/netcoreapp3.1/Trine.Analyzer.SolutionFixer.dll",
             "args": [],
             "cwd": "${workspaceFolder}/Trine.Analyzer.SolutionFixer",
             "console": "internalConsole",
