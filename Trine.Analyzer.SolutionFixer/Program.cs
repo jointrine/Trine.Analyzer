@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -19,7 +20,7 @@ using Trine.Analyzer;
 
 namespace SolutionFixer
 {
-    class Program
+    static class Program
     {
         static async Task Main(string[] args)
         {
@@ -35,14 +36,18 @@ namespace SolutionFixer
         {
             MSBuildLocator.RegisterDefaults();
 
-            var analyzer = new MemberOrderAnalyzer();
-            var codeFixProvider = new MemberOrderCodeFixProvider();
+            var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(
+                new MemberOrderAnalyzer(), new EnumValueAnalyzer());
+            var codeFixProviders = ImmutableArray.Create<CodeFixProvider>(
+                new MemberOrderCodeFixProvider(),
+                new EnumValueCodeFixProvider());
 
             using (var workspace = MSBuildWorkspace.Create())
             {
                 var solution = await workspace.OpenSolutionAsync(solutionPath);
                 var newSolution = solution;
 
+                var totalNumFixes = 0;
                 foreach (var projectId in solution.ProjectIds)
                 {
                     var project = newSolution.GetProject(projectId)
@@ -51,34 +56,62 @@ namespace SolutionFixer
 
                     // CG: Can only apply one code fix per file at a time
                     var analyzeProject = true;
+                    var numFixes = 0;
+                    var numErrors = 0;
                     while (analyzeProject)
                     {
                         analyzeProject = false;
 
-                        var compilationWithAnalyzers = project.GetCompilationAsync().Result.WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
-                        var diags = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().Result;
-
+                        var compilationWithAnalyzers = (await project.GetCompilationAsync()).WithAnalyzers(analyzers);
+                        var diags = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+                        numErrors = diags.Count(d => d.Severity == DiagnosticSeverity.Error);
                         foreach (var documentId in project.DocumentIds)
                         {
-                            var document = project.GetDocument(documentId);
-                            var updatedDocument = await AnalyzeDocumentAsync(document, diags, codeFixProvider);
+                            var document = project.GetDocument(documentId)
+                                ?? throw new Exception("Failed finding document " + documentId);
+                            var updatedDocument = await AnalyzeDocumentAsync(document, diags, codeFixProviders);
                             if (updatedDocument != document)
                             {
                                 Console.Write(".");
+                                numFixes++;
+                                totalNumFixes++;
                                 analyzeProject = true;
                                 project = updatedDocument.Project;
                                 newSolution = updatedDocument.Project.Solution;
-
                             }
                         }
                     }
-                    Console.WriteLine();
+
+                    if (numErrors > 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($" {numErrors} UNFIXABLE ERRORS");
+                    }
+                    else if (numFixes > 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($" FIXED {numFixes} ERRORS");
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($" NO ERRORS FOUND");
+                    }
+                    Console.ResetColor();
                 }
-                workspace.TryApplyChanges(newSolution);
+
+                if (totalNumFixes > 0)
+                {
+                    Console.WriteLine($"Apply {totalNumFixes} changes? (y/n)");
+                    if (Console.ReadLine() == "y")
+                    {
+                        workspace.TryApplyChanges(newSolution);
+                    }
+                }
             }
         }
 
-        private static async Task<Document> AnalyzeDocumentAsync(Document document, IEnumerable<Diagnostic> diags, CodeFixProvider codeFixProvider)
+        private static async Task<Document> AnalyzeDocumentAsync(Document document, IEnumerable<Diagnostic> diags, ImmutableArray<CodeFixProvider> codeFixProviders)
         {
             var syntaxTree = await document.GetSyntaxTreeAsync();
             var analyzerDiagnostics = diags.Where(d => d.Location.SourceTree == syntaxTree).ToArray();
@@ -86,21 +119,28 @@ namespace SolutionFixer
 
             var actions = new List<CodeAction>();
             var context = new CodeFixContext(document, analyzerDiagnostics[0], (a, d) => actions.Add(a), CancellationToken.None);
-            codeFixProvider.RegisterCodeFixesAsync(context).Wait();
+            foreach (var c in codeFixProviders.Where(p => p.FixableDiagnosticIds.Contains(analyzerDiagnostics[0].Id)))
+            {
+                await c.RegisterCodeFixesAsync(context);
+            }
 
             if (!actions.Any())
             {
                 return document;
             }
 
-            return ApplyFix(document, actions.ElementAt(0));
+            foreach (var action in actions)
+            {
+                document = await ApplyFixAsync(document, action);
+            }
+            return document;
         }
 
-        private static Document ApplyFix(Document document, CodeAction codeAction)
+        private static async Task<Document> ApplyFixAsync(Document document, CodeAction codeAction)
         {
-            var operations = codeAction.GetOperationsAsync(CancellationToken.None).Result;
+            var operations = await codeAction.GetOperationsAsync(CancellationToken.None);
             var solution = operations.OfType<ApplyChangesOperation>().Single().ChangedSolution;
-            return solution.GetDocument(document.Id) 
+            return solution.GetDocument(document.Id)
                 ?? throw new Exception("Failed getting document " + document.Id);
         }
     }
