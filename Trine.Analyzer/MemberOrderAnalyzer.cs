@@ -35,7 +35,10 @@ namespace Trine.Analyzer
                     && sortOrder.IsKnown
                     && sortOrder.CompareTo(prevSortOrder) < 0)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(Rule, member.GetLocation(), SortOrder.FormatOrderDifference(sortOrder, prevSortOrder)));
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        Rule,
+                        member.GetLocation(),
+                        SortOrder.FormatOrderDifference(sortOrder, prevSortOrder)));
                 }
 
                 prevSortOrder = sortOrder;
