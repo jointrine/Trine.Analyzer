@@ -8,43 +8,47 @@ namespace Trine.Analyzer
 {
     internal class SortOrder : IComparable<SortOrder>
     {
-        private readonly DeclarationOrder? _declarationOrder;
-        private readonly VisibilityOrder? _visibilityOrder;
-        private readonly StaticOrder? _staticOrder;
-        private readonly int? _interfaceOrder;
+        private readonly Lazy<DeclarationOrder?> _declarationOrder;
+        private readonly Lazy<VisibilityOrder?> _visibilityOrder;
+        private readonly Lazy<StaticOrder?> _staticOrder;
+        private readonly Lazy<int?> _interfaceOrder;
+        private readonly Lazy<string?> _interfaceOrderName;
 
         public SortOrder(MemberDeclarationSyntax member, SemanticModel? semanticModel)
         {
-            _declarationOrder = GetDeclarationOrder(member);
-            _visibilityOrder = GetVisibilityOrder(member);
-            _staticOrder = GetStaticOrder(member);
-            _interfaceOrder = semanticModel != null ? 
-                GetInterfaceOrder(member, semanticModel) : null; 
+            _declarationOrder = new Lazy<DeclarationOrder?>(() => GetDeclarationOrder(member));
+            _visibilityOrder = new Lazy<VisibilityOrder?>(() => GetVisibilityOrder(member));
+            _staticOrder = new Lazy<StaticOrder?>(() => GetStaticOrder(member));
+            _interfaceOrder = new Lazy<int?>(() => semanticModel != null ?
+                GetInterfaceOrder(member, semanticModel) : null);
+            _interfaceOrderName = new Lazy<string?>(() => GetInterfaceOrderName(member, semanticModel));
         }
 
-        public DeclarationOrder? Declaration => _declarationOrder;
+        public DeclarationOrder? Declaration => _declarationOrder.Value;
 
-        public bool IsKnown => _declarationOrder != null && _visibilityOrder != null && _staticOrder != null;
+        public bool IsKnown => _declarationOrder.Value != null
+                               && _visibilityOrder.Value != null
+                               && _staticOrder.Value != null;
 
-        public static string[] FormatOrderDifference(SortOrder sortOrder1, SortOrder sortOrder2)
+        public static string?[] FormatOrderDifference(SortOrder sortOrder1, SortOrder sortOrder2)
         {
-            if (sortOrder1._declarationOrder != sortOrder2._declarationOrder) 
+            if (sortOrder1._declarationOrder.Value != sortOrder2._declarationOrder.Value)
                 return FormatItems(sortOrder1._declarationOrder, sortOrder2._declarationOrder);
-            if (sortOrder1._visibilityOrder != sortOrder2._visibilityOrder) 
+            if (sortOrder1._visibilityOrder.Value != sortOrder2._visibilityOrder.Value)
                 return FormatItems(sortOrder1._visibilityOrder, sortOrder2._visibilityOrder);
-            if (sortOrder1._staticOrder != sortOrder2._staticOrder) 
+            if (sortOrder1._staticOrder.Value != sortOrder2._staticOrder.Value)
                 return FormatItems(sortOrder1._staticOrder, sortOrder2._staticOrder);
-            if (sortOrder1._interfaceOrder != sortOrder2._interfaceOrder) 
-                return FormatItems(sortOrder1._interfaceOrder, sortOrder2._interfaceOrder);
+            if (sortOrder1._interfaceOrder.Value != sortOrder2._interfaceOrder.Value)
+                return new[] { sortOrder1._interfaceOrderName.Value, sortOrder2._interfaceOrderName.Value };
             return new string[0];
         }
 
         int IComparable<SortOrder>.CompareTo(SortOrder other)
         {
-            return CompareOrder(_declarationOrder, other._declarationOrder)
-                ?? CompareOrder(_visibilityOrder, other._visibilityOrder)
-                ?? CompareOrder(_staticOrder, other._staticOrder)
-                ?? CompareOrder(_interfaceOrder, other._interfaceOrder)
+            return CompareOrder(_declarationOrder.Value, other._declarationOrder.Value)
+                ?? CompareOrder(_visibilityOrder.Value, other._visibilityOrder.Value)
+                ?? CompareOrder(_staticOrder.Value, other._staticOrder.Value)
+                ?? CompareOrder(_interfaceOrder.Value, other._interfaceOrder.Value)
                 ?? 0;
         }
 
@@ -53,9 +57,9 @@ namespace Trine.Analyzer
             return ((IComparable<SortOrder>)this).CompareTo(prevSortOrder);
         }
 
-        private static string[] FormatItems<T>(T? item11, T? item12) where T : struct
+        private static string?[] FormatItems<T>(Lazy<T?> item1, Lazy<T?> item2) where T : struct
         {
-            return new string[] { item11.ToString(), item12.ToString() };
+            return new string?[] { item1.Value.ToString(), item2.Value.ToString() };
         }
 
         private static int? CompareOrder<T>(T? order1, T? order2) where T : struct, IComparable
@@ -66,7 +70,7 @@ namespace Trine.Analyzer
                 if (order1.HasValue) return -1;
                 return 0;
             }
-            
+
             var diff = order1.Value.CompareTo(order2.Value);
             if (diff == 0) return null;
             return diff;
@@ -124,7 +128,7 @@ namespace Trine.Analyzer
         private static VisibilityOrder? GetVisibilityOrder(MemberDeclarationSyntax member)
         {
             var modifiers = GetModifiers(member);
-            foreach(var modifier in modifiers)
+            foreach (var modifier in modifiers)
             {
                 if (modifier.IsKind(SyntaxKind.PublicKeyword)) return VisibilityOrder.Public;
                 if (modifier.IsKind(SyntaxKind.InternalKeyword)) return VisibilityOrder.Internal;
@@ -153,6 +157,8 @@ namespace Trine.Analyzer
 
         private int? GetInterfaceOrder(MemberDeclarationSyntax member, SemanticModel semanticModel)
         {
+            if (!member.IsKind(SyntaxKind.MethodDeclaration)) return null;
+
             var methodSymbol = semanticModel.GetDeclaredSymbol(member);
             if (methodSymbol == null) return null;
             var classSymbol = methodSymbol.ContainingType;
@@ -168,6 +174,22 @@ namespace Trine.Analyzer
             return interfaceOrder;
         }
 
+        private static string? GetInterfaceOrderName(MemberDeclarationSyntax member, SemanticModel? semanticModel)
+        {
+            if (!member.IsKind(SyntaxKind.MethodDeclaration) || semanticModel == null) return null;
+
+            var methodSymbol = semanticModel.GetDeclaredSymbol(member);
+            if (methodSymbol == null) return null;
+            var classSymbol = methodSymbol.ContainingType;
+
+            var @interface = classSymbol
+                .AllInterfaces
+                .FirstOrDefault(i =>
+                    i.GetMembers().Any(m => classSymbol.FindImplementationForInterfaceMember(m) == methodSymbol)
+                );
+
+            return @interface.Name + "." + methodSymbol.Name;
+        }
 
         // CG: For details on ordering: https://stackoverflow.com/a/310967/382040
         internal enum DeclarationOrder

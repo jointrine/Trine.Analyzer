@@ -178,6 +178,72 @@ namespace Trine
             VerifyCSharpFix(source, @fixed);
         }
 
+
+        [TestMethod]
+        public void InterfaceOrder()
+        {
+            var test = @"
+namespace Trine
+{
+    public interface I1
+    {
+        void TestI1_1();
+        void TestI1_2();
+    }
+    public interface I2
+    {
+        void TestI2();
+    }
+    public class TestClass : I1, I2
+    {
+        public void TestI2() { }
+        public void TestI1_2() { }
+        public void TestI1_1() { }
+    }
+}
+";
+            VerifyCSharpDiagnostic(test, new[]{
+                new DiagnosticResult
+                {
+                    Id = "TRINE01",
+                    Message = "I1.TestI1_2 should be declared before I2.TestI2",
+                    Severity = DiagnosticSeverity.Warning,
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 16, 9)}
+                },
+                new DiagnosticResult
+                {
+                    Id = "TRINE01",
+                    Message = "I1.TestI1_1 should be declared before I1.TestI1_2",
+                    Severity = DiagnosticSeverity.Warning,
+                    Locations = new[] {new DiagnosticResultLocation("Test0.cs", 17, 9)}
+                },
+            });
+
+            var fixtest = @"
+namespace Trine
+{
+    public interface I1
+    {
+        void TestI1_1();
+        void TestI1_2();
+    }
+    public interface I2
+    {
+        void TestI2();
+    }
+    public class TestClass : I1, I2
+    {
+        public void TestI1_1() { }
+
+        public void TestI1_2() { }
+
+        public void TestI2() { }
+    }
+}
+";
+            VerifyCSharpFix(test, fixtest);
+        }
+
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
             return new MemberOrderCodeFixProvider();
