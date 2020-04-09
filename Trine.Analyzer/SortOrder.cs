@@ -188,6 +188,9 @@ namespace Trine.Analyzer
                     i.GetMembers().Any(m => classSymbol.FindImplementationForInterfaceMember(m) == methodSymbol)
                 );
 
+            // CG: For some reason the interface couldn't be found in all cases.
+            // Couldn't figure out why, but for now just ignoring.
+            if (@interface == null) return methodSymbol.Name;
             return @interface.Name + "." + methodSymbol.Name;
         }
 
