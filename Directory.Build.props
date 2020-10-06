@@ -1,7 +1,11 @@
 <Project>
- <PropertyGroup>
-   <LangVersion>8.0</LangVersion>
-   <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-   <Nullable>enable</Nullable>
- </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>8.0</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Trine.Analyzer" Version="2020.4.9.2" />
+  </ItemGroup>
 </Project>
