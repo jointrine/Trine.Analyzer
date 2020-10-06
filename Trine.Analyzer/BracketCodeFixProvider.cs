@@ -47,7 +47,10 @@ namespace Trine.Analyzer
                             .Distinct();
                         foreach (var statement in statementsToFix)
                         {
-                            if (statement == null) continue;
+                            if (statement == null)
+                            {
+                                continue;
+                            }
 
                             var updatedStatement = SyntaxFactory.Block(statement);
                             var updatedParent = statement.Parent.ReplaceNode(statement, updatedStatement);

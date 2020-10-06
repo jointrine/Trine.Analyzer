@@ -14,7 +14,13 @@ namespace Trine.Analyzer
     {
         public const string DiagnosticId = "TRINE03";
 
-        private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, "Missing brackets", "Missing brackets", "Category", DiagnosticSeverity.Warning, isEnabledByDefault: true);
+        private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(
+            DiagnosticId,
+            "Missing brackets",
+            "Missing brackets",
+            "Category",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(Rule); } }
 
@@ -28,7 +34,10 @@ namespace Trine.Analyzer
         {
             var ifStatementSyntax = (IfStatementSyntax)context.Node;
             AnalyzeStatement(context, ifStatementSyntax.Statement);
-            if (ifStatementSyntax.Else != null) AnalyzeStatement(context, ifStatementSyntax.Else.Statement);
+            if (ifStatementSyntax.Else != null)
+            {
+                AnalyzeStatement(context, ifStatementSyntax.Else.Statement);
+            }
         }
 
         private static void AnalyzeStatement(SyntaxNodeAnalysisContext context, StatementSyntax statement)
