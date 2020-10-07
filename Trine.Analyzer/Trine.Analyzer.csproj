@@ -8,7 +8,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PackageId>Trine.Analyzer</PackageId>
+    <!-- 
+      CG: PackageId is updated before publishing. PackageId must be different during build
+      or you run into "cycle detected" issue: 
+      https://github.com/NuGet/Home/issues/6754#issuecomment-388166770
+    -->
+    <PackageId>Trine.Analyzer.Build</PackageId>
     <PackageVersion>1.0.0.0</PackageVersion>
     <Authors></Authors>
     <PackageLicenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</PackageLicenseUrl>
@@ -22,6 +27,12 @@
     <PackageTags>Trine.Analyzer, analyzers</PackageTags>
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
+
+  <Target Name="_UpdatePackageId" BeforeTargets="$(PackDependsOn)">
+    <PropertyGroup>
+      <PackageId>Trine.Analyzer</PackageId>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="2.6.2" PrivateAssets="all" />

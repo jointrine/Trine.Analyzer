@@ -24,8 +24,39 @@ namespace Trine.Analyzer
             _interfaceOrderName = new Lazy<string?>(() => GetInterfaceOrderName(member, semanticModel));
         }
 
-        public DeclarationOrder? Declaration => _declarationOrder.Value;
+        // CG: For details on ordering: https://stackoverflow.com/a/310967/382040
+        internal enum DeclarationOrder
+        {
+            Constant = 0,
+            Field = 1,
+            Constructor = 2,
+            Destructor = 3,
+            Delegate = 4,
+            Event = 5,
+            Enum = 6,
+            Interface = 7,
+            Property = 8,
+            Indexer = 9,
+            Method = 10,
+            Struct = 11,
+            Class = 12
+        }
 
+        internal enum VisibilityOrder
+        {
+            Public = 0,
+            Internal = 1,
+            Protected = 2,
+            Private = 3
+        }
+
+        internal enum StaticOrder
+        {
+            Static = 0,
+            NonStatic = 1
+        }
+
+        public DeclarationOrder? Declaration => _declarationOrder.Value;
         public bool IsKnown => _declarationOrder.Value != null
                                && _visibilityOrder.Value != null
                                && _staticOrder.Value != null;
@@ -41,15 +72,6 @@ namespace Trine.Analyzer
             if (sortOrder1._interfaceOrder.Value != sortOrder2._interfaceOrder.Value)
                 return new[] { sortOrder1._interfaceOrderName.Value, sortOrder2._interfaceOrderName.Value };
             return new string[0];
-        }
-
-        int IComparable<SortOrder>.CompareTo(SortOrder other)
-        {
-            return CompareOrder(_declarationOrder.Value, other._declarationOrder.Value)
-                ?? CompareOrder(_visibilityOrder.Value, other._visibilityOrder.Value)
-                ?? CompareOrder(_staticOrder.Value, other._staticOrder.Value)
-                ?? CompareOrder(_interfaceOrder.Value, other._interfaceOrder.Value)
-                ?? 0;
         }
 
         internal int CompareTo(SortOrder prevSortOrder)
@@ -149,6 +171,35 @@ namespace Trine.Analyzer
             return new SyntaxTokenList();
         }
 
+        private static string? GetInterfaceOrderName(MemberDeclarationSyntax member, SemanticModel? semanticModel)
+        {
+            if (!member.IsKind(SyntaxKind.MethodDeclaration) || semanticModel == null) return null;
+
+            var methodSymbol = semanticModel.GetDeclaredSymbol(member);
+            if (methodSymbol == null) return null;
+            var classSymbol = methodSymbol.ContainingType;
+
+            var @interface = classSymbol
+                .AllInterfaces
+                .FirstOrDefault(i =>
+                    i.GetMembers().Any(m => classSymbol.FindImplementationForInterfaceMember(m) == methodSymbol)
+                );
+
+            // CG: For some reason the interface couldn't be found in all cases.
+            // Couldn't figure out why, but for now just ignoring.
+            if (@interface == null) return methodSymbol.Name;
+            return @interface.Name + "." + methodSymbol.Name;
+        }
+
+        int IComparable<SortOrder>.CompareTo(SortOrder other)
+        {
+            return CompareOrder(_declarationOrder.Value, other._declarationOrder.Value)
+                ?? CompareOrder(_visibilityOrder.Value, other._visibilityOrder.Value)
+                ?? CompareOrder(_staticOrder.Value, other._staticOrder.Value)
+                ?? CompareOrder(_interfaceOrder.Value, other._interfaceOrder.Value)
+                ?? 0;
+        }
+
         private StaticOrder? GetStaticOrder(MemberDeclarationSyntax member)
         {
             var isStatic = GetModifiers(member).Any(m => m.IsKind(SyntaxKind.StaticKeyword));
@@ -172,58 +223,6 @@ namespace Trine.Analyzer
                 .Count();
 
             return interfaceOrder;
-        }
-
-        private static string? GetInterfaceOrderName(MemberDeclarationSyntax member, SemanticModel? semanticModel)
-        {
-            if (!member.IsKind(SyntaxKind.MethodDeclaration) || semanticModel == null) return null;
-
-            var methodSymbol = semanticModel.GetDeclaredSymbol(member);
-            if (methodSymbol == null) return null;
-            var classSymbol = methodSymbol.ContainingType;
-
-            var @interface = classSymbol
-                .AllInterfaces
-                .FirstOrDefault(i =>
-                    i.GetMembers().Any(m => classSymbol.FindImplementationForInterfaceMember(m) == methodSymbol)
-                );
-
-            // CG: For some reason the interface couldn't be found in all cases.
-            // Couldn't figure out why, but for now just ignoring.
-            if (@interface == null) return methodSymbol.Name;
-            return @interface.Name + "." + methodSymbol.Name;
-        }
-
-        // CG: For details on ordering: https://stackoverflow.com/a/310967/382040
-        internal enum DeclarationOrder
-        {
-            Constant,
-            Field,
-            Constructor,
-            Destructor,
-            Delegate,
-            Event,
-            Enum,
-            Interface,
-            Property,
-            Indexer,
-            Method,
-            Struct,
-            Class
-        }
-
-        internal enum VisibilityOrder
-        {
-            Public,
-            Internal,
-            Protected,
-            Private
-        }
-
-        internal enum StaticOrder
-        {
-            Static,
-            NonStatic,
         }
 
     }

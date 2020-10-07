@@ -15,29 +15,15 @@ namespace Trine.Analyzer.Tests.TestHelper
     /// </summary>
     public abstract partial class DiagnosticVerifier
     {
-        private static readonly MetadataReference CorlibReference = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
-        private static readonly MetadataReference SystemCoreReference = MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location);
-        private static readonly MetadataReference CSharpSymbolsReference = MetadataReference.CreateFromFile(typeof(CSharpCompilation).Assembly.Location);
-        private static readonly MetadataReference CodeAnalysisReference = MetadataReference.CreateFromFile(typeof(Compilation).Assembly.Location);
-
         internal static string DefaultFilePathPrefix = "Test";
         internal static string CSharpDefaultFileExt = "cs";
         internal static string VisualBasicDefaultExt = "vb";
         internal static string TestProjectName = "TestProject";
 
-        #region  Get Diagnostics
-
-        /// <summary>
-        /// Given classes in the form of strings, their language, and an IDiagnosticAnalyzer to apply to it, return the diagnostics found in the string after converting it to a document.
-        /// </summary>
-        /// <param name="sources">Classes in the form of strings</param>
-        /// <param name="language">The language the source classes are in</param>
-        /// <param name="analyzer">The analyzer to be run on the sources</param>
-        /// <returns>An IEnumerable of Diagnostics that surfaced in the source code, sorted by Location</returns>
-        private static Diagnostic[] GetSortedDiagnostics(string[] sources, string language, DiagnosticAnalyzer analyzer)
-        {
-            return GetSortedDiagnosticsFromDocuments(analyzer, GetDocuments(sources, language));
-        }
+        private static readonly MetadataReference CorlibReference = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+        private static readonly MetadataReference SystemCoreReference = MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location);
+        private static readonly MetadataReference CSharpSymbolsReference = MetadataReference.CreateFromFile(typeof(CSharpCompilation).Assembly.Location);
+        private static readonly MetadataReference CodeAnalysisReference = MetadataReference.CreateFromFile(typeof(Compilation).Assembly.Location);
 
         /// <summary>
         /// Given an analyzer and a document to apply it to, run the analyzer and gather an array of diagnostics found in it.
@@ -63,7 +49,7 @@ namespace Trine.Analyzer.Tests.TestHelper
                     var compilationWithAnalyzers = project.GetCompilationAsync().Result.WithAnalyzers(ImmutableArray.Create(analyzer));
                     diags = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().Result;
                 }
-                else 
+                else
                 {
                     var compilation = project.GetCompilationAsync().Result;
                     diags = compilation.GetDiagnostics();
@@ -92,6 +78,31 @@ namespace Trine.Analyzer.Tests.TestHelper
             var results = SortDiagnostics(diagnostics);
             diagnostics.Clear();
             return results;
+        }
+
+        /// <summary>
+        /// Create a Document from a string through creating a project that contains it.
+        /// </summary>
+        /// <param name="source">Classes in the form of a string</param>
+        /// <param name="language">The language the source code is in</param>
+        /// <returns>A Document created from the source string</returns>
+        protected static Document CreateDocument(string source, string language = LanguageNames.CSharp)
+        {
+            return CreateProject(new[] { source }, language).Documents.First();
+        }
+
+        #region  Get Diagnostics
+
+        /// <summary>
+        /// Given classes in the form of strings, their language, and an IDiagnosticAnalyzer to apply to it, return the diagnostics found in the string after converting it to a document.
+        /// </summary>
+        /// <param name="sources">Classes in the form of strings</param>
+        /// <param name="language">The language the source classes are in</param>
+        /// <param name="analyzer">The analyzer to be run on the sources</param>
+        /// <returns>An IEnumerable of Diagnostics that surfaced in the source code, sorted by Location</returns>
+        private static Diagnostic[] GetSortedDiagnostics(string[] sources, string language, DiagnosticAnalyzer analyzer)
+        {
+            return GetSortedDiagnosticsFromDocuments(analyzer, GetDocuments(sources, language));
         }
 
         /// <summary>
@@ -129,17 +140,6 @@ namespace Trine.Analyzer.Tests.TestHelper
             }
 
             return documents;
-        }
-
-        /// <summary>
-        /// Create a Document from a string through creating a project that contains it.
-        /// </summary>
-        /// <param name="source">Classes in the form of a string</param>
-        /// <param name="language">The language the source code is in</param>
-        /// <returns>A Document created from the source string</returns>
-        protected static Document CreateDocument(string source, string language = LanguageNames.CSharp)
-        {
-            return CreateProject(new[] { source }, language).Documents.First();
         }
 
         /// <summary>

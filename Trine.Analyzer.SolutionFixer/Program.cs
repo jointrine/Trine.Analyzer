@@ -22,16 +22,6 @@ namespace SolutionFixer
 {
     static class Program
     {
-        static async Task Main(string[] args)
-        {
-            if (!args.Any())
-            {
-                Console.WriteLine("dotnet run <path to solution>");
-                return;
-            }
-            await FixSolution(args[0]);
-        }
-
         public static async Task FixSolution(string solutionPath)
         {
             MSBuildLocator.RegisterDefaults();
@@ -109,6 +99,16 @@ namespace SolutionFixer
                     }
                 }
             }
+        }
+
+        static async Task Main(string[] args)
+        {
+            if (!args.Any())
+            {
+                Console.WriteLine("dotnet run <path to solution>");
+                return;
+            }
+            await FixSolution(args[0]);
         }
 
         private static async Task<Document> AnalyzeDocumentAsync(Document document, IEnumerable<Diagnostic> diags, ImmutableArray<CodeFixProvider> codeFixProviders)

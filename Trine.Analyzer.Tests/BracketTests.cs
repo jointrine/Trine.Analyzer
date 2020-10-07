@@ -70,6 +70,16 @@ else
             VerifyCSharpFix(WrapStatementsInMethod(source), WrapStatementsInMethod(fixedSource));
         }
 
+        protected override CodeFixProvider GetCSharpCodeFixProvider()
+        {
+            return new BracketCodeFixProvider();
+        }
+
+        protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
+        {
+            return new BracketAnalyzer();
+        }
+
         private string WrapStatementsInMethod(string code)
         {
             return $@"class X 
@@ -79,16 +89,6 @@ else
         {code.Replace(Environment.NewLine, Environment.NewLine + new string(' ', 8))}
     }} 
 }}";
-        }
-
-        protected override CodeFixProvider GetCSharpCodeFixProvider()
-        {
-            return new BracketCodeFixProvider();
-        }
-
-        protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
-        {
-            return new BracketAnalyzer();
         }
     }
 }

@@ -8,11 +8,7 @@ namespace Trine.Analyzer.Tests
     [TestClass]
     public class InjectTests : CodeFixVerifier
     {
-        protected override CodeFixProvider GetCSharpCodeFixProvider()
-        {
-            return new InjectInstanceCodeFixProvider();
-        }
-        
+
         [TestMethod]
         public void Inject_WhenNoConstructor_CreatesConstructor()
         {
@@ -137,6 +133,11 @@ class Class
     }
 }";
             VerifyCSharpFix(before, after);
+        }
+
+        protected override CodeFixProvider GetCSharpCodeFixProvider()
+        {
+            return new InjectInstanceCodeFixProvider();
         }
     }
 }

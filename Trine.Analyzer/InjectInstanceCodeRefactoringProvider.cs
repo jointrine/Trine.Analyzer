@@ -61,6 +61,29 @@ namespace Trine.Analyzer
                     context.Diagnostics);
         }
 
+        private static ClassDeclarationSyntax AddField(ClassDeclarationSyntax classNode, SimpleNameSyntax serviceType, SyntaxToken fieldIdentifier)
+        {
+            var field = SyntaxFactory.FieldDeclaration(
+                SyntaxFactory.VariableDeclaration(serviceType,
+                    SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(fieldIdentifier))))
+                .WithModifiers(SyntaxFactory.TokenList(
+                    SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
+                    SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)))
+                .WithLeadingTrivia(SyntaxFactory.ElasticEndOfLine("\r\n"));
+            return classNode.AddSortedMembers(field);
+        }
+
+        private static string ToVariableName(SimpleNameSyntax symbolName)
+        {
+            var paramName = symbolName.Identifier.Text;
+            if (new Regex("^I[A-Z]").IsMatch(paramName))
+            {
+                paramName = paramName.Substring(1);
+            }
+            paramName = paramName.Substring(0, 1).ToLower() + paramName.Substring(1);
+            return paramName;
+        }
+
         private ClassDeclarationSyntax? FindClass(SyntaxNode? node)
         {
             if (node == null) return null;
@@ -82,18 +105,6 @@ namespace Trine.Analyzer
             var root = await document.GetSyntaxRootAsync();
             root = root.ReplaceNode(classNode, updatedClass);
             return document.WithSyntaxRoot(root);
-        }
-
-        private static ClassDeclarationSyntax AddField(ClassDeclarationSyntax classNode, SimpleNameSyntax serviceType, SyntaxToken fieldIdentifier)
-        {
-            var field = SyntaxFactory.FieldDeclaration(
-                SyntaxFactory.VariableDeclaration(serviceType,
-                    SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(fieldIdentifier))))
-                .WithModifiers(SyntaxFactory.TokenList(
-                    SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
-                    SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)))
-                .WithLeadingTrivia(SyntaxFactory.ElasticEndOfLine("\r\n"));
-            return classNode.AddSortedMembers(field);
         }
 
         private ClassDeclarationSyntax InjectInConstructor(ClassDeclarationSyntax classNode, SimpleNameSyntax symbolName, SyntaxToken fieldName)
@@ -125,17 +136,6 @@ namespace Trine.Analyzer
             }
 
             return classNode;
-        }
-
-        private static string ToVariableName(SimpleNameSyntax symbolName)
-        {
-            var paramName = symbolName.Identifier.Text;
-            if (new Regex("^I[A-Z]").IsMatch(paramName))
-            {
-                paramName = paramName.Substring(1);
-            }
-            paramName = paramName.Substring(0, 1).ToLower() + paramName.Substring(1);
-            return paramName;
         }
 
         private class InjectCodeAction : CodeAction

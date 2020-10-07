@@ -22,6 +22,7 @@ namespace Trine.Analyzer.Tests.TestHelper
         {
             return null;
         }
+
         #endregion
 
         #region Verifier wrappers
@@ -35,22 +36,6 @@ namespace Trine.Analyzer.Tests.TestHelper
         protected void VerifyCSharpDiagnostic(string source, params DiagnosticResult[] expected)
         {
             VerifyDiagnostics(new[] { source }, LanguageNames.CSharp, GetCSharpDiagnosticAnalyzer(), expected);
-        }
-
-
-        /// <summary>
-        /// General method that gets a collection of actual diagnostics found in the source after the analyzer is run, 
-        /// then verifies each of them.
-        /// </summary>
-        /// <param name="sources">An array of strings to create source documents from to run the analyzers on</param>
-        /// <param name="language">The language of the classes represented by the source strings</param>
-        /// <param name="analyzer">The analyzer to be run on the source code</param>
-        /// <param name="expected">DiagnosticResults that should appear after the analyzer is run on the sources</param>
-        private void VerifyDiagnostics(string[] sources, string language, DiagnosticAnalyzer? analyzer, params DiagnosticResult[] expected)
-        {
-            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
-            var diagnostics = GetSortedDiagnostics(sources, language, analyzer);
-            VerifyDiagnosticResults(diagnostics, analyzer, expected);
         }
 
         #endregion
@@ -171,6 +156,7 @@ namespace Trine.Analyzer.Tests.TestHelper
                 }
             }
         }
+
         #endregion
 
         #region Formatting Diagnostics
@@ -226,6 +212,21 @@ namespace Trine.Analyzer.Tests.TestHelper
                 }
             }
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// General method that gets a collection of actual diagnostics found in the source after the analyzer is run, 
+        /// then verifies each of them.
+        /// </summary>
+        /// <param name="sources">An array of strings to create source documents from to run the analyzers on</param>
+        /// <param name="language">The language of the classes represented by the source strings</param>
+        /// <param name="analyzer">The analyzer to be run on the source code</param>
+        /// <param name="expected">DiagnosticResults that should appear after the analyzer is run on the sources</param>
+        private void VerifyDiagnostics(string[] sources, string language, DiagnosticAnalyzer? analyzer, params DiagnosticResult[] expected)
+        {
+            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
+            var diagnostics = GetSortedDiagnostics(sources, language, analyzer);
+            VerifyDiagnosticResults(diagnostics, analyzer, expected);
         }
         #endregion
     }
