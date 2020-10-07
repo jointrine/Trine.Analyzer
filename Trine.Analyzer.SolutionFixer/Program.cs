@@ -27,10 +27,15 @@ namespace SolutionFixer
             MSBuildLocator.RegisterDefaults();
 
             var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(
-                new MemberOrderAnalyzer(), new EnumValueAnalyzer());
+                new MemberOrderAnalyzer(),
+                new EnumValueAnalyzer(),
+                new BracketAnalyzer()
+                );
             var codeFixProviders = ImmutableArray.Create<CodeFixProvider>(
                 new MemberOrderCodeFixProvider(),
-                new EnumValueCodeFixProvider());
+                new EnumValueCodeFixProvider(),
+                new BracketCodeFixProvider()
+                );
 
             using (var workspace = MSBuildWorkspace.Create())
             {

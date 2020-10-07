@@ -11,11 +11,11 @@ namespace Trine.Analyzer.Tests
     [TestClass]
     public class BracketTests : CodeFixVerifier
     {
-        [TestMethod]
-        public void NoDiagnosticsWhenCorrect()
+        [DataTestMethod]
+        [DataRow("class X { void Test() { if (true) { return; } } }")]
+        [DataRow("class X { void Test() { if (true) { return; } else if { return; } } }")]
+        public void NoDiagnosticsWhenCorrect(string source)
         {
-            var source = @"class X { void Test() { if (true) { return; } } }";
-
             VerifyCSharpDiagnostic(source);
         }
 
