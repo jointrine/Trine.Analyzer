@@ -6,33 +6,41 @@
 name: $(BuildDefinitionName)_$(Year:yyyy).$(Month).$(DayOfMonth)$(Rev:.r)
 
 trigger:
-- master
+  - master
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: "windows-latest"
 
 variables:
-  BuildConfiguration: 'Release'
+  BuildConfiguration: "Release"
 
 steps:
-- task: NuGetAuthenticate@0
-- task: DotNetCoreCLI@2
-  inputs:
-    command: build
-    arguments: '--configuration $(buildConfiguration)'
-    
-- task: DotNetCoreCLI@2
-  inputs:
-    command: test
-    arguments: '--configuration $(buildConfiguration)'
+  - task: NuGetAuthenticate@0
 
-- task: DotNetCoreCLI@2
-  inputs:
-    command: pack
-    packagesToPack: 'Trine.Analyzer/Trine.Analyzer.csproj'
-    versioningScheme: 'byBuildNumber'
-    configurationToPack: '$(BuildConfiguration)'
+  - task: DotNetCoreCLI@2
+    displayName: "Restore NuGet"
+    inputs:
+      command: restore
+      feedsToUse: config
+      nugetConfigPath: "NuGet.Config"
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    artifactName: package
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: build
+      arguments: "--configuration $(buildConfiguration)"
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: test
+      arguments: "--configuration $(buildConfiguration)"
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: pack
+      packagesToPack: "Trine.Analyzer/Trine.Analyzer.csproj"
+      versioningScheme: "byBuildNumber"
+      configurationToPack: "$(BuildConfiguration)"
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      artifactName: package
