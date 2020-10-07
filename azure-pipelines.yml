@@ -15,6 +15,7 @@ variables:
   BuildConfiguration: 'Release'
 
 steps:
+- task: NuGetAuthenticate@0
 - task: DotNetCoreCLI@2
   inputs:
     command: build
