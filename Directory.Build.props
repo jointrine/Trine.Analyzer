@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Trine.Analyzer" Version="2020.4.9.2" />
+    <PackageReference Include="Trine.Analyzer" Version="2020.4.9.2">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>
