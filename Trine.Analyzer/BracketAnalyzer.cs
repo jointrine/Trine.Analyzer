@@ -34,7 +34,8 @@ namespace Trine.Analyzer
         {
             var ifStatementSyntax = (IfStatementSyntax)context.Node;
             AnalyzeStatement(context, ifStatementSyntax.Statement);
-            if (ifStatementSyntax.Else != null)
+            if (ifStatementSyntax.Else != null &&
+                !ifStatementSyntax.Else.Statement.IsKind(SyntaxKind.IfStatement))
             {
                 AnalyzeStatement(context, ifStatementSyntax.Else.Statement);
             }
