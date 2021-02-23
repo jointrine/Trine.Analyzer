@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -19,7 +20,10 @@ namespace Trine.Analyzer
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(Rule); } }
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
+        {
+            get { return ImmutableArray.Create(Rule); }
+        }
 
         public override void Initialize(AnalysisContext context)
         {
@@ -32,20 +36,30 @@ namespace Trine.Analyzer
             return type switch
             {
                 QualifiedNameSyntax qualifiedNameSyntax => IsTask(qualifiedNameSyntax.Right),
-                SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier.Text == "Task",
+                SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier.Text == "Task"
+                                                     || simpleNameSyntax.Identifier.Text == "IAsyncEnumerable",
                 _ => false
             };
         }
 
         private static void AnalyzeMethod(SyntaxNodeAnalysisContext context)
         {
-            var methodSyntax = (MethodDeclarationSyntax)context.Node;
+            var methodSyntax = (MethodDeclarationSyntax) context.Node;
             var returnsTask = IsTask(methodSyntax.ReturnType);
             var hasAsyncSuffix = methodSyntax.Identifier.Text.EndsWith("Async");
-            if (returnsTask != hasAsyncSuffix)
+            if (returnsTask != hasAsyncSuffix && !IsProgramMain(methodSyntax))
             {
-                context.ReportDiagnostic(Diagnostic.Create(Rule, methodSyntax.GetLocation()));
+                context.ReportDiagnostic(Diagnostic.Create(Rule, methodSyntax.Identifier.GetLocation()));
             }
+        }
+
+        private static bool IsProgramMain(MethodDeclarationSyntax methodSyntax)
+        {
+            return methodSyntax.Identifier.Text == "Main"
+                   && methodSyntax.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword))
+                   && methodSyntax.Parent is ClassDeclarationSyntax
+                       classDeclarationSyntax
+                   && classDeclarationSyntax.Identifier.Text == "Program";
         }
     }
 }

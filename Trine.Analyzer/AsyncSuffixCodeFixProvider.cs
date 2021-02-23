@@ -7,6 +7,8 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Options;
+using Microsoft.CodeAnalysis.Rename;
 
 namespace Trine.Analyzer
 {
@@ -31,40 +33,35 @@ namespace Trine.Analyzer
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: title,
-                    createChangedDocument: async ct =>
+                    createChangedSolution: async ct =>
                     {
                         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
                         var semanticModel = await context.Document.GetSemanticModelAsync();
+                        var solution = context.Document.Project.Solution;
 
-                        var methodsToFix = context.Diagnostics
-                            .Select(d => root.FindNode(d.Location.SourceSpan) as MethodDeclarationSyntax)
-                            .Distinct();
-                        foreach (var method in methodsToFix)
+                        foreach (var diagnostic in context.Diagnostics)
                         {
+                            var node = root.FindNode(diagnostic.Location.SourceSpan);
+                            var method = node as MethodDeclarationSyntax;
                             if (method == null)
                             {
                                 continue;
                             }
 
-                            var updatedMethod = method.WithIdentifier(FixIdentifier(method));
-
-                            root = root.ReplaceNode(method, updatedMethod);
+                            var isTask = AsyncSuffixAnalyzer.IsTask(method.ReturnType);
+                            var methodName = method.Identifier.Text;
+                            var newName = isTask 
+                                ? methodName + "Async" 
+                                : methodName.Substring(0, methodName.Length - "Async".Length);
+                            var methodSymbol = semanticModel.GetDeclaredSymbol(method);
+                            solution = await Renamer.RenameSymbolAsync(solution, methodSymbol, newName,
+                                solution.Options, ct);
                         }
-                        return context.Document.WithSyntaxRoot(root);
+                        return solution;
                     },
                     equivalenceKey: title),
                 context.Diagnostics);
             return Task.CompletedTask;
-        }
-
-        private SyntaxToken FixIdentifier(MethodDeclarationSyntax method)
-        {
-            var isTask = AsyncSuffixAnalyzer.IsTask(method.ReturnType);
-            var methodName = method.Identifier.Text;
-            var newName = isTask 
-                ? methodName + "Async" 
-                : methodName.Substring(0, methodName.Length - "Async".Length);
-            return SyntaxFactory.Identifier(newName);
         }
     }
 }

@@ -15,6 +15,8 @@ namespace Trine.Analyzer.Tests
         [DataRow("class X { Task TestAsync() { return Task.CompletedTask; } }")]
         [DataRow("class X { System.Task TestAsync() { return System.Task.CompletedTask; } }")]
         [DataRow("class X { System.Task<int> TestAsync() { return System.Task.FromResult(1); } }")]
+        [DataRow("class X { IAsyncEnumerable<int> TestAsync() {  } }")]
+        [DataRow("class Program { static async Task Main() { return Task.CompletedTask; } }")]
         public void NoDiagnosticsWhenCorrect(string source)
         {
             VerifyCSharpDiagnostic(source);
@@ -30,7 +32,7 @@ namespace Trine.Analyzer.Tests
                 Id = "TRINE04",
                 Message = "Invalid Async suffix",
                 Severity = DiagnosticSeverity.Warning,
-                Locations = new[] { new DiagnosticResultLocation("Test0.cs", 1, 11) }
+                Locations = new[] { new DiagnosticResultLocation("Test0.cs", 1, 23) }
             });
         }
 
@@ -44,6 +46,9 @@ namespace Trine.Analyzer.Tests
         [DataRow(
             "void TestAsync() { }", 
             "void Test() { }")]
+        [DataRow(
+            "void TestAsync() { } void Go() { TestAsync(); }", 
+            "void Test() { } void Go() { Test(); }")]
         public void VerifyFixer(string source, string fixedSource)
         {
             VerifyCSharpFix(WrapStatementsInClass(source), WrapStatementsInClass(fixedSource));
