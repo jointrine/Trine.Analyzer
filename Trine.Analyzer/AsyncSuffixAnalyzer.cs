@@ -29,16 +29,12 @@ namespace Trine.Analyzer
 
         internal static bool IsTask(TypeSyntax type)
         {
-            if (type is QualifiedNameSyntax qualifiedNameSyntax)
+            return type switch
             {
-                return IsTask(qualifiedNameSyntax.Right);
-            }
-
-            if (type is IdentifierNameSyntax identifierNameSyntax)
-            {
-                return identifierNameSyntax.Identifier.Text == "Task";
-            }
-            return false;
+                QualifiedNameSyntax qualifiedNameSyntax => IsTask(qualifiedNameSyntax.Right),
+                SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier.Text == "Task",
+                _ => false
+            };
         }
 
         private static void AnalyzeMethod(SyntaxNodeAnalysisContext context)

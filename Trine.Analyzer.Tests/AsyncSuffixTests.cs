@@ -14,6 +14,7 @@ namespace Trine.Analyzer.Tests
         [DataRow("class X { void Test() { } }")]
         [DataRow("class X { Task TestAsync() { return Task.CompletedTask; } }")]
         [DataRow("class X { System.Task TestAsync() { return System.Task.CompletedTask; } }")]
+        [DataRow("class X { System.Task<int> TestAsync() { return System.Task.FromResult(1); } }")]
         public void NoDiagnosticsWhenCorrect(string source)
         {
             VerifyCSharpDiagnostic(source);
