@@ -79,8 +79,8 @@ interface IInterface
 
 class Class
 {
-    private readonly IInterface _interface;
     private readonly IAnotherService _anotherService;
+    private readonly IInterface _interface;
 
     public Class(IAnotherService anotherService, IInterface interface)
     {
