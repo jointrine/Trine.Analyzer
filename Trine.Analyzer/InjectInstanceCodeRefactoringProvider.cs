@@ -14,6 +14,7 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Formatting;
 
 namespace Trine.Analyzer
 {
@@ -23,6 +24,14 @@ namespace Trine.Analyzer
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
             get { return ImmutableArray.Create("CS0120", "CS0119"); }
+        }
+
+        public static ClassDeclarationSyntax InjectToConstructor(SimpleNameSyntax typeName,
+            ClassDeclarationSyntax updatedClass, SyntaxToken fieldIdentifier)
+        {
+            updatedClass = AddField(updatedClass, typeName, fieldIdentifier);
+            updatedClass = InjectInConstructor(updatedClass, typeName.WithoutTrivia(), fieldIdentifier);
+            return updatedClass;
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
@@ -84,30 +93,7 @@ namespace Trine.Analyzer
             return paramName;
         }
 
-        private ClassDeclarationSyntax? FindClass(SyntaxNode? node)
-        {
-            if (node == null) return null;
-            if (node is ClassDeclarationSyntax classNode) return classNode;
-            return FindClass(node.Parent);
-        }
-
-        private async Task<Document> InjectInstance(Document document, ClassDeclarationSyntax classNode, SimpleNameSyntax typeName)
-        {
-            var fieldName = "_" + ToVariableName(typeName);
-            var fieldIdentifier = SyntaxFactory.Identifier(fieldName);
-
-            ClassDeclarationSyntax updatedClass = classNode;
-            var typeNameStr = typeName.GetText().ToString();
-            updatedClass = updatedClass.ReplaceNode(typeName, SyntaxFactory.IdentifierName(fieldName));
-            updatedClass = AddField(updatedClass, typeName, fieldIdentifier);
-            updatedClass = InjectInConstructor(updatedClass, typeName.WithoutTrivia(), fieldIdentifier);
-
-            var root = await document.GetSyntaxRootAsync();
-            root = root.ReplaceNode(classNode, updatedClass);
-            return document.WithSyntaxRoot(root);
-        }
-
-        private ClassDeclarationSyntax InjectInConstructor(ClassDeclarationSyntax classNode, SimpleNameSyntax symbolName, SyntaxToken fieldName)
+        private static ClassDeclarationSyntax InjectInConstructor(ClassDeclarationSyntax classNode, SimpleNameSyntax symbolName, SyntaxToken fieldName)
         {
             string paramName = ToVariableName(symbolName);
             var oldConstructor = (ConstructorDeclarationSyntax)classNode.Members.FirstOrDefault(m => m.IsKind(SyntaxKind.ConstructorDeclaration));
@@ -136,6 +122,28 @@ namespace Trine.Analyzer
             }
 
             return classNode;
+        }
+
+        private ClassDeclarationSyntax? FindClass(SyntaxNode? node)
+        {
+            if (node == null) return null;
+            if (node is ClassDeclarationSyntax classNode) return classNode;
+            return FindClass(node.Parent);
+        }
+
+        private async Task<Document> InjectInstance(Document document, ClassDeclarationSyntax classNode, SimpleNameSyntax typeName)
+        {
+            var fieldName = "_" + ToVariableName(typeName);
+            var fieldIdentifier = SyntaxFactory.Identifier(fieldName);
+
+            ClassDeclarationSyntax updatedClass = classNode;
+            var typeNameStr = typeName.GetText().ToString();
+            updatedClass = updatedClass.ReplaceNode(typeName, SyntaxFactory.IdentifierName(fieldName));
+            updatedClass = InjectToConstructor(typeName, updatedClass, fieldIdentifier);
+
+            var root = await document.GetSyntaxRootAsync();
+            root = root.ReplaceNode(classNode, updatedClass);
+            return document.WithSyntaxRoot(root);
         }
 
         private class InjectCodeAction : CodeAction
