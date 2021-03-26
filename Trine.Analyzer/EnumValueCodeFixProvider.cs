@@ -49,7 +49,7 @@ namespace Trine.Analyzer
                         {
                             if (enumSyntax == null) continue;
                             
-                            var nextValue = 0;
+                            var nextValue = 1;
 
                             var updatedEnumSyntax = enumSyntax.WithMembers(
                                 SyntaxFactory.SeparatedList(

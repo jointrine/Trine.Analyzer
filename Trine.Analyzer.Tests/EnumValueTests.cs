@@ -75,7 +75,7 @@ namespace Trine.Analyzer.Tests
 
     enum Enum
     {
-        A = 0
+        A = 1
     }
 
     enum Enum2 { X = 1 }
