@@ -12,7 +12,7 @@ namespace Trine.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class BracketAnalyzer : DiagnosticAnalyzer
     {
-        public const string DiagnosticId = "TRINE03";
+        public const string DiagnosticId = DiagnosticIds.Brackets;
 
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(
             DiagnosticId,
