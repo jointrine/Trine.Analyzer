@@ -11,7 +11,7 @@ namespace Trine.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class MemberOrderAnalyzer : DiagnosticAnalyzer
     {
-        public const string DiagnosticId = "TRINE01";
+        public const string DiagnosticId = DiagnosticIds.MemberOrder;
 
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, "Incorrect order", "{0} should be declared before {1}", "Category", DiagnosticSeverity.Warning, isEnabledByDefault: true);
 

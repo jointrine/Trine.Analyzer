@@ -10,7 +10,7 @@ namespace Trine.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class AsyncSuffixAnalyzer : DiagnosticAnalyzer
     {
-        public const string DiagnosticId = "TRINE04";
+        public const string DiagnosticId = DiagnosticIds.AsyncSuffix;
 
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(
             DiagnosticId,

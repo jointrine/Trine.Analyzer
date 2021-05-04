@@ -12,7 +12,7 @@ namespace Trine.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class EnumValueAnalyzer : DiagnosticAnalyzer
     {
-        public const string DiagnosticId = "TRINE02";
+        public const string DiagnosticId = DiagnosticIds.EnumValue;
 
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, "Missing enum value", "Missing enum value", "Category", DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
