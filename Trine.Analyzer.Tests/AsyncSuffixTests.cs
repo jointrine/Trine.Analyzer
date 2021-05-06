@@ -16,6 +16,7 @@ namespace Trine.Analyzer.Tests
         [DataRow("class X { System.Task TestAsync() { return System.Task.CompletedTask; } }")]
         [DataRow("class X { System.Task<int> TestAsync() { return System.Task.FromResult(1); } }")]
         [DataRow("class X { IAsyncEnumerable<int> TestAsync() {  } }")]
+        [DataRow("class X { ValueTask<int> TestAsync() {  } }")]
         [DataRow("class Program { static async Task Main() { return Task.CompletedTask; } }")]
         public void NoDiagnosticsWhenCorrect(string source)
         {

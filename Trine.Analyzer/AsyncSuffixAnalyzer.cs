@@ -33,11 +33,11 @@ namespace Trine.Analyzer
 
         internal static bool IsTask(TypeSyntax type)
         {
+            var taskTypes = new[] {"Task", "IAsyncEnumerable", "ValueTask"};
             return type switch
             {
                 QualifiedNameSyntax qualifiedNameSyntax => IsTask(qualifiedNameSyntax.Right),
-                SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier.Text == "Task"
-                                                     || simpleNameSyntax.Identifier.Text == "IAsyncEnumerable",
+                SimpleNameSyntax simpleNameSyntax => taskTypes.Contains(simpleNameSyntax.Identifier.Text),
                 _ => false
             };
         }
